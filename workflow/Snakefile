@@ -1,0 +1,109 @@
+configfile: "config/config.yaml"
+
+rule all:
+    input:
+        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam", sample=config['Samples'])
+
+
+##-------------------------------------------------------------------##
+##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
+##-------------------------------------------------------------------##
+
+rule download_ensembl_gtf:
+    output: 
+        "resources/genome/GRCm39/gene_annotation.gtf"
+    params: 
+        url = lambda wildcards: config['URLs']['GRCm39']['gtf']
+    shell:
+        """
+        wget -O {output}.gz {params.url}
+        gunzip {output}.gz
+        """
+
+rule download_ensembl_cdna:
+    output: 
+        "resources/genome/GRCm39/cdna.fa"
+    params: 
+        url = lambda wildcards: config['URLs']['GRCm39']['cdna']
+    shell:
+        """
+        wget -O {output}.gz {params.url}
+        gunzip {output}.gz
+        """
+
+rule download_ensembl_genome:
+    output: 
+        "resources/genome/GRCm39/genome.fa"
+    params:
+        url = lambda wildcards: config['URLs']['GRCm39']['genome']
+    shell:
+        """
+        wget -O {output}.gz {params.url}
+        gunzip {output}.gz
+        """
+
+##----------------------------------------##
+##  Generate STAR genome index and align  ##
+##----------------------------------------##
+
+rule star_genome_index:
+    input:
+        genome = "resources/genome/GRCm39/genome.fa",
+        gtf = "resources/genome/GRCm39/gene_annotation.gtf"
+    output:
+        genome_dir = directory("resources/genome/GRCm39/star_index/")
+    params:
+        overhang = config['read_length']-1
+    threads: 24
+    shell:
+        """
+        module load gcc/11.3.0 star
+        mkdir -p {output.genome_dir}
+        STAR --runMode genomeGenerate \
+             --genomeDir {output.genome_dir} \
+             --genomeFastaFiles {input.genome} \
+             --sjdbGTFfile {input.gtf} \
+             --sjdbOverhang {params.overhang} \
+             --limitGenomeGenerateRAM 81000000000 \
+             --runThreadN {threads}
+        """
+
+rule star_align:
+    input:
+        fq = :"resources/fastq/{sample}.fastq",
+        gtf = "resources/genome/GRCm39/gene_annotation.gtf",
+        genome_dir = "resources/genome/GRCm39/star_index/"
+    output:
+        "results/star/{sample}/Aligned.sortedByCoord.out.bam"
+    params:
+        prefix="results/star/{sample}/",
+        outsamtype = "BAM SortedByCoordinate",
+        limitram = 81000000000
+    threads: 12
+    shell:
+        """
+        module load gcc/11.3.0 star
+        STAR --runMode alignReads \
+             --readFilesIn {input} \
+             --genomeDir {input.genome_dir} \
+             --outFileNamePrefix {params.prefix} \
+             --outSAMtype {params.outsamtype} \
+             --limitBAMsortRAM {params.limitram} \
+             --sjdbGTFfile {input.gtf} \
+             --runThreadN {threads}
+        """
+
+##--------------------------------------##
+##  BAM files indexing                  ##
+##--------------------------------------##
+
+rule sam_index:
+    input:
+        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam"
+    output:
+        bam_index="results/star/{sample}/Aligned.sortedByCoord.out.bam.bai"
+    shell:
+        """
+        ml gcc/11.3.0 samtools
+        samtools index {input}
+        """

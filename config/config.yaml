@@ -1,0 +1,25 @@
+URLs:
+    GRCh38:
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v43.basic.annotation.gtf.gz"
+        genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz"
+        cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.pc_transcripts.fa.gz"
+    GRCm39:
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.basic.annotation.gtf.gz"
+        genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/GRCm39.primary_assembly.genome.fa.gz"
+        cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.pc_transcripts.fa.gz"
+
+Species: GRCm39
+read_length: 75
+Samples:
+    - PRO_SEQ_CT00_S1_R1_001
+    - PRO_SEQ_CT04_S2_R1_001
+    - PRO_SEQ_CT08_S3_R1_001
+    - PRO_SEQ_CT12_S4_R1_001
+    - PRO_SEQ_CT16_S5_R1_001
+    - PRO_SEQ_CT20_S6_R1_001
+    - PRO_SEQ_CT24_S7_R1_001
+    - PRO_SEQ_CT28_S8_R1_001
+    - PRO_SEQ_CT32_S9_R1_001
+    - PRO_SEQ_CT36_S10_R1_001
+    - PRO_SEQ_CT40_S11_R1_001
+    - PRO_SEQ_CT44_S12_R1_001
