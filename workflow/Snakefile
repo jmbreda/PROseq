@@ -108,3 +108,29 @@ rule sam_index:
         ml gcc/11.3.0 samtools
         samtools index {input}
         """
+
+##--------------------------------------##
+##  Coverage                            ##
+##--------------------------------------##
+
+rule coverage:
+    input:
+        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
+        genome="resources/genome/GRCm39/genome.fa"
+    output:
+        bw="results/star/{sample}/coverage.bw"
+    params:
+        prefix="results/star/{sample}/",
+        genome="resources/genome/GRCm39/genome.fa"
+    threads: 12
+    shell:
+        """
+        ml gcc/11.3.0 samtools
+        ml gcc/11.3.0 bedtools
+        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -g {input.genome} > {params.prefix}coverage.bedgraph
+        bedGraphToBigWig {params.prefix}coverage.bedgraph {input.genome} {output.bw}
+        """
+
+##--------------------------------------##
+##  Track Hub                           ##
+##--------------------------------------##
