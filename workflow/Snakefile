@@ -113,21 +113,31 @@ rule sam_index:
 ##  Coverage                            ##
 ##--------------------------------------##
 
-rule coverage:
+rule chrom_size:
     input:
-        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
         genome="resources/genome/GRCm39/genome.fa"
     output:
-        bw="results/star/{sample}/coverage.bw"
-    params:
-        prefix="results/star/{sample}/",
-        genome="resources/genome/GRCm39/genome.fa"
-    threads: 12
+        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
     shell:
         """
         ml gcc/11.3.0 samtools
-        ml gcc/11.3.0 bedtools
-        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -g {input.genome} > {params.prefix}coverage.bedgraph
+        samtools faidx {input.genome}
+        cut -f1,2 {input.genome}.fai > {output.genome_size}
+        """
+
+rule coverage:
+    input:
+        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
+        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
+    output:
+        bw="results/star/{sample}/coverage.bw"
+    params:
+        prefix="results/star/{sample}/"
+    threads: 1
+    shell:
+        """
+        ml gcc/11.3.0 samtools bedtools2
+        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg | grep "^\<chr" > {params.prefix}coverage.bedgraph
         bedGraphToBigWig {params.prefix}coverage.bedgraph {input.genome} {output.bw}
         """
 
