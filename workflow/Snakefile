@@ -2,7 +2,8 @@ configfile: "config/config.yaml"
 
 rule all:
     input:
-        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam", sample=config['Samples'])
+        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam", sample=config['Samples']),
+        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam.bai", sample=config['Samples'])
 
 
 ##-------------------------------------------------------------------##
@@ -70,7 +71,7 @@ rule star_genome_index:
 
 rule star_align:
     input:
-        fq = :"resources/fastq/{sample}.fastq",
+        fq = "resources/fastq/{sample}.fastq",
         gtf = "resources/genome/GRCm39/gene_annotation.gtf",
         genome_dir = "resources/genome/GRCm39/star_index/"
     output:
@@ -84,7 +85,7 @@ rule star_align:
         """
         module load gcc/11.3.0 star
         STAR --runMode alignReads \
-             --readFilesIn {input} \
+             --readFilesIn {input.fq} \
              --genomeDir {input.genome_dir} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype {params.outsamtype} \

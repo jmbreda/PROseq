@@ -1,0 +1,31 @@
+{
+    "__default__" :
+    {
+        "name" : "default_snakejob",
+        "qos" : "serial",
+        "time" : "01:00:00",
+        "mem" : "6G",
+        "nodes" : 1,
+        "ntasks" : 1,
+        "cpus-per-task" : 1,
+        "stdout" : "stdout/slurm-%x-%j",
+        "stderr" : "stderr/slurm-%x-%j"
+    },
+
+    "star_genome_index" :
+    {
+        "name" : "star_genome_index",
+        "time" : "02:00:00",
+        "cpus-per-task" : 24,
+        "mem" : "100G"
+    },
+
+    "star_align" :
+    {
+        "name" : "star_align",
+        "time" : "02:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    }
+
+}
