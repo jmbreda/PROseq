@@ -25,7 +25,7 @@ if __name__ == '__main__':
         fout.write("\n")
 
     # make ChIP_Atlas.html
-    outfile=f'{outfolder}/ChIP_Atlas.html'
+    outfile=f'{outfolder}/PROseq.html'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("PRO-seq data in mouse at times 0h-44h in steps of 4h\n")
 
@@ -39,12 +39,23 @@ if __name__ == '__main__':
     Samples.sort()
     outfile=f'{outfolder}/{genome}/trackDb.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
-        for sample in Samples[:1]:
+        for sample in Samples:
             print(sample)
-
-            # BAM tracks
             name = '_'.join(sample.split('_')[:3])
 
+            # BigWig tracks
+            fout.write(f"track {name}\n")
+            fout.write("type bigWig\n")
+            fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/coverage.bw\n")
+            #fout.write("type bam\n")
+            #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
+            fout.write(f"shortLabel {name}\n")
+            fout.write(f"longLabel {sample}\n")
+            fout.write("visibility full\n")
+            fout.write("autoScale on\n")
+            fout.write(f"\n")
+
+            # BAM tracks
             # Optional settings
             #
             # pairEndsByName  any value                   # presence indicates paired-end alignments
@@ -64,15 +75,14 @@ if __name__ == '__main__':
             # maxWindowToDraw N                           # don't display track when viewing more than N bases
             # chromosomes     chr1,chr2,...               # track contains data only on listed reference assembly sequences
             # doWiggle        on|off                      # if on, show data as density graph, default is off
-
-            fout.write(f"track ")
-            fout.write("type=bam ")
-            fout.write(f"bigDataUrl=http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam ")
-            #fout.write(f"name={name} ")
+#
+            #fout.write(f"track {name}\n")
+            #fout.write("type bam\n")
+            #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
+            ##fout.write(f"name={name} ")
             #fout.write(f"description={sample} ")
             #fout.write("visibility=full ")
             #fout.write(f"db={genome} ")
             #fout.write("chromosomes=chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,ch11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chrX,chrY ")
             #fout.write("autoScale on\n")
-
-            fout.write("\n\n")
+            #fout.write("\n")
