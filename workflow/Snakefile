@@ -2,8 +2,7 @@ configfile: "config/config.yaml"
 
 rule all:
     input:
-        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam", sample=config['Samples']),
-        expand("results/star/{sample}/Aligned.sortedByCoord.out.bam.bai", sample=config['Samples'])
+        expand("results/star/{sample}/coverage_norm.bw", sample=config['Samples'])
 
 
 ##-------------------------------------------------------------------##
@@ -122,23 +121,65 @@ rule chrom_size:
         """
         ml gcc/11.3.0 samtools
         samtools faidx {input.genome}
-        cut -f1,2 {input.genome}.fai > {output.genome_size}
+        cut -f1,2 {input.genome}.fai > {output.chrom_size}
         """
 
-rule coverage:
+rule coverage_bedgraph:
     input:
         bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
-        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
     output:
-        bw="results/star/{sample}/coverage.bw"
-    params:
-        prefix="results/star/{sample}/"
-    threads: 1
+        bg="results/star/{sample}/coverage.bedgraph"
     shell:
         """
         ml gcc/11.3.0 samtools bedtools2
-        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg | grep "^\<chr" > {params.prefix}coverage.bedgraph
-        bedGraphToBigWig {params.prefix}coverage.bedgraph {input.genome} {output.bw}
+        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg | grep "^\<chr" > {outpuft.bg}
+        """
+
+rule get_total_count:
+    input:
+        bg="results/star/{sample}/coverage.bedgraph"
+    output:
+        "results/star/{sample}/total_counts.txt"
+    shell:
+        """
+        count=$(awk '{{sum+=$4}} END {{print sum}}' {input.bg})
+        echo $count > {output}
+        """
+
+rule get_median_total_count:
+    input:
+        total_counts=expand("results/star/{sample}/total_counts.txt", sample=config['Samples'])
+    output:
+        "results/star/median_total_counts.txt"
+    shell:
+        """
+        cat {input.total_counts} | sort -n | awk '{{a[NR]=$1}} END {{print (NR%2==1) ? a[(NR+1)/2] : (a[NR/2]+a[NR/2+1])/2}}' > {output}
+        """
+
+rule normalize_bedgraph:
+    input:
+        bg="results/star/{sample}/coverage.bedgraph",
+        total_counts="results/star/{sample}/total_counts.txt",
+        median_total_counts="results/star/median_total_counts.txt"
+    output:
+        norm_bg="results/star/{sample}/coverage_norm.bedgraph"
+    shell:
+        """
+        total_counts=$(cat {input.total_counts})
+        median_total_counts=$(cat {input.median_total_counts})
+        factor=$(echo "scale=4; $median_total_counts/$total_counts" | bc)
+        awk -v factor=$factor '{{print $1"\t"$2"\t"$3"\t"$4*factor}}' {input.bg} > {output.norm_bg}
+        """
+
+rule norm_coverage_bw:
+    input:
+        norm_bg="results/star/{sample}/coverage_norm.bedgraph",
+        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
+    output:
+        bw="results/star/{sample}/coverage_norm.bw"
+    shell:
+        """
+        bedGraphToBigWig {input.norm_bg} {input.chrom_size} {output.bw}
         """
 
 ##--------------------------------------##
