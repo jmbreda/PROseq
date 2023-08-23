@@ -46,7 +46,7 @@ if __name__ == '__main__':
             # BigWig tracks
             fout.write(f"track {name}\n")
             fout.write("type bigWig\n")
-            fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/coverage.bw\n")
+            fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/coverage_norm.bw\n")
             #fout.write("type bam\n")
             #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
             fout.write(f"shortLabel {name}\n")
