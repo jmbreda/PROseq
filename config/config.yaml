@@ -23,3 +23,7 @@ Samples:
     - PRO_SEQ_CT36_S10_R1_001
     - PRO_SEQ_CT40_S11_R1_001
     - PRO_SEQ_CT44_S12_R1_001
+
+Strands:
+    - forward
+    - reverse
