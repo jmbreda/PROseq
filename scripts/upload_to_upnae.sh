@@ -4,10 +4,12 @@
 
 Samples=$(ls -d results/star/PRO_SEQ_CT*_S*_R1_001)
 
+#echo "Enter passphrase for key '/home/jbreda/.ssh/id_rsa':"
+#read -rs password
+
 for s in $Samples
 do
     echo "Uploading $s"
-    scp $s/*.bedgraph upnae:PROseq/$s/
-    scp $s/*.bw upnae:PROseq/$s/
-    scp $s/*.txt upnae:PROseq/$s/
+    #sshpass -p "${password}" scp "$s"/*.bedgraph "$s"/*.bw "$s"/*.txt upnae:PROseq/"$s"
+    scp "$s"/*.bedgraph "$s"/*.bw "$s"/*.txt upnae:PROseq/"$s"
 done

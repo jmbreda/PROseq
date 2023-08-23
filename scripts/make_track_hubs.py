@@ -42,7 +42,6 @@ if __name__ == '__main__':
     with open(outfile,'w', encoding="utf-8") as fout:
         for strand in Strands:
             for sample in Samples:
-                print(sample)
                 name = '_'.join(sample.split('_')[:3])
 
                 # BigWig tracks
