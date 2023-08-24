@@ -35,8 +35,7 @@ if __name__ == '__main__':
         fout.write("http://upnaesrv1.epfl.ch/PROseq/hub.txt\n")
 
     # make trackDb.txt
-    Samples = os.listdir('results/star/')
-    Samples.sort()
+    Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)]    
     Strands = ['forward','reverse']
     outfile=f'{outfolder}/{genome}/trackDb.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
@@ -45,13 +44,18 @@ if __name__ == '__main__':
                 name = '_'.join(sample.split('_')[:3])
 
                 # BigWig tracks
-                fout.write(f"track {name} {strand}\n")
+                fout.write(f"track {name}_{strand}\n")
                 fout.write("type bigWig\n")
                 fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/NormCoverage_{strand}.bw\n")
                 #fout.write("type bam\n")
                 #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
-                fout.write(f"shortLabel {name} {strand}\n")
-                fout.write(f"longLabel {sample} {strand}\n")
+                if strand == 'forward':
+                    fout.write("color 0,0,255\n")
+                    fout.write(f"shortLabel {name}_F\n")
+                else:
+                    fout.write("color 255,0,0\n")
+                    fout.write(f"shortLabel {name}_R\n")
+                fout.write(f"longLabel {sample}_{strand}\n")
                 fout.write("visibility full\n")
                 fout.write("autoScale on\n")
                 fout.write(f"\n")
