@@ -58,7 +58,14 @@ if __name__ == '__main__':
                 fout.write(f"longLabel {sample}_{strand}\n")
                 fout.write("visibility full\n")
                 fout.write("autoScale on\n")
+                fout.write(f"html {name}_{strand}.html\n")
                 fout.write(f"\n")
+
+                # make description file
+                outfile=f'{outfolder}/{genome}/{name}_{strand}.html'
+                with open(outfile,'w', encoding="utf-8") as fout2:
+                    fout2.write(f"{sample}_{strand}\nTime point: {name.split('_')[2][2:]}h\nStrand: {strand}\n")
+
 
                 # BAM tracks
                 # Optional settings
