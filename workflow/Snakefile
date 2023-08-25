@@ -1,8 +1,14 @@
 configfile: "config/config.yaml"
 
+wildcard_constraints:
+    sample="|".join(config['Samples']),
+    strand="|".join(config['Strands']),
+    bin_size="|".join(config['Bin_size'])
+
 rule all:
     input:
-        expand("results/star/{sample}/NormCoverage_{strand}.bw", sample=config['Samples'], strand=config['Strands'])
+        expand("results/star/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw", sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+
 
 
 ##-------------------------------------------------------------------##
@@ -128,18 +134,18 @@ rule coverage_bedgraph:
     input:
         bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
     output:
-        bg="results/star/{sample}/coverage_{strand}.bedgraph"
+        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph"
     params:
         strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else ''
     shell:
         """
         ml gcc/11.3.0 samtools bedtools2
-        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -strand {params.strand} | grep "^\<chr" > {output.bg}
+        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -strand {params.strand} -3 | grep "^\<chr" > {output.bg}
         """
 
 rule get_total_count:
     input:
-        bg="results/star/{sample}/coverage_{strand}.bedgraph"
+        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph"
     output:
         counts="results/star/{sample}/total_counts_{strand}.txt"
     shell:
@@ -148,41 +154,47 @@ rule get_total_count:
         echo $count > {output.counts}
         """
 
-rule get_median_total_count:
-    input:
-        total_counts=expand("results/star/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands'])
-    output:
-        "results/star/median_total_counts.txt"
-    shell:
-        """
-        cat {input.total_counts} | sort -n | awk '{{a[NR]=$1}} END {{print (NR%2==1) ? a[(NR+1)/2] : (a[NR/2]+a[NR/2+1])/2}}' > {output}
-        """
+#rule get_median_total_count:
+#    input:
+#        total_counts=expand("results/star/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands'])
+#    output:
+#        "results/star/median_total_counts.txt"
+#    shell:
+#        """
+#        cat {input.total_counts} | sort -n | awk '{{a[NR]=$1}} END {{print (NR%2==1) ? a[(NR+1)/2] : (a[NR/2]+a[NR/2+1])/2}}' | awk '{$1=sprintf("%6.2f", $1); printf $1}' > {output}
+#        """
 
 rule normalize_sort_bedgraph:
     input:
-        bg="results/star/{sample}/coverage_{strand}.bedgraph",
-        total_counts="results/star/{sample}/total_counts_{strand}.txt",
-        median_total_counts="results/star/median_total_counts.txt"
+        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph",
+        total_count="results/star/{sample}/total_counts_{strand}.txt",
+        total_counts=expand("results/star/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands']),
     output:
-        norm_bg="results/star/{sample}/NormCoverage_{strand}.bedgraph"
+        norm_bg="results/star/{sample}/NormCoverage_3p_{strand}.bedgraph"
     shell:
         """
-        total_counts=$(cat {input.total_counts})
-        median_total_counts=$(cat {input.median_total_counts})
-        factor=$(echo "scale=4; $median_total_counts/$total_counts" | bc)
-        awk -v factor=$factor '{{print $1"\t"$2"\t"$3"\t"$4*factor}}' {input.bg} > {output.norm_bg}
-        bedSort {output.norm_bg} {output.norm_bg}
+        ./scripts/normalize_bedgraph.sh {input.bg} {input.total_count} {output.norm_bg} {input.total_counts} 
         """
 
 rule norm_coverage_bw:
     input:
-        norm_bg="results/star/{sample}/NormCoverage_{strand}.bedgraph",
+        norm_bg="results/star/{sample}/NormCoverage_3p_{strand}.bedgraph",
         chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
     output:
-        bw="results/star/{sample}/NormCoverage_{strand}.bw"
+        bw="results/star/{sample}/NormCoverage_3p_{strand}.bw"
     shell:
         """
         bedGraphToBigWig {input.norm_bg} {input.chrom_size} {output.bw}
+        """
+
+rule bin_coverage:
+    input:
+        bw="results/star/{sample}/NormCoverage_3p_{strand}.bw"
+    output:
+        bin_bw="results/star/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw"
+    shell:
+        """
+        python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
         """
 
 ##--------------------------------------##

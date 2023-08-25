@@ -11,5 +11,6 @@ for s in $Samples
 do
     echo "Uploading $s"
     #sshpass -p "${password}" scp "$s"/*.bedgraph "$s"/*.bw "$s"/*.txt upnae:PROseq/"$s"
-    scp "$s"/*.bedgraph "$s"/*.bw "$s"/*.txt upnae:PROseq/"$s"
+    #scp "$s"/*.bedgraph "$s"/*.bw "$s"/*.txt upnae:PROseq/"$s"
+    scp "$s"/NormCoverage_3p_*_bin100bp.bw upnae:PROseq/"$s"
 done
