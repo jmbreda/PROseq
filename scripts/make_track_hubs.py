@@ -3,11 +3,13 @@ import os
 if __name__ == '__main__':
 
     genome = 'mm39'
-    outfolder = 'track_hubs'
-    os.makedirs(f"{outfolder}/{genome}", exist_ok=True)
+    bin_size = 100
+    target = '/data/web/sites/PROseq/'
+    link = 'track_hubs'
+    os.system(f'ln -s {target} {link}')
 
     # make track hub
-    outfile=f'{outfolder}/hub.txt'
+    outfile=f'{link}/hub.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("hub PRO-seq\n")
         fout.write("shortLabel PRO-seq\n")
@@ -18,26 +20,28 @@ if __name__ == '__main__':
         fout.write("\n")
 
     # make genomes.txt
-    outfile=f'{outfolder}/genomes.txt'
+    outfile=f'{link}/genomes.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write(f"genome {genome}\n")
         fout.write(f"trackDb {genome}/trackDb.txt\n")
         fout.write("\n")
 
     # make ChIP_Atlas.html
-    outfile=f'{outfolder}/PROseq.html'
+    outfile=f'{link}/PROseq.html'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("PRO-seq data in mouse at times 0h-44h in steps of 4h\n")
 
     # make url.txt
-    outfile=f'{outfolder}/url.txt'
+    outfile=f'{link}/url.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("http://upnaesrv1.epfl.ch/PROseq/hub.txt\n")
 
     # make trackDb.txt
     Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)]    
     Strands = ['forward','reverse']
-    outfile=f'{outfolder}/{genome}/trackDb.txt'
+
+    os.makedirs(f"{link}/{genome}", exist_ok=True)
+    outfile=f"{link}/{genome}/trackDb.txt"
     with open(outfile,'w', encoding="utf-8") as fout:
         for strand in Strands:
             for sample in Samples:
@@ -46,7 +50,7 @@ if __name__ == '__main__':
                 # BigWig tracks
                 fout.write(f"track {name}_{strand}\n")
                 fout.write("type bigWig\n")
-                fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/NormCoverage_{strand}.bw\n")
+                fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                 #fout.write("type bam\n")
                 #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
                 if strand == 'forward':
@@ -62,7 +66,7 @@ if __name__ == '__main__':
                 fout.write(f"\n")
 
                 # make description file
-                outfile=f'{outfolder}/{genome}/{name}_{strand}.html'
+                outfile=f'{link}/{genome}/{name}_{strand}.html'
                 with open(outfile,'w', encoding="utf-8") as fout2:
                     fout2.write(f"{sample}_{strand}\nTime point: {name.split('_')[2][2:]}h\nStrand: {strand}\n")
 
