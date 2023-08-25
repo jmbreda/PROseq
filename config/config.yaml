@@ -8,6 +8,12 @@ URLs:
         genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/GRCm39.primary_assembly.genome.fa.gz"
         cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.pc_transcripts.fa.gz"
 
+outfold_genome: "resources/genome"
+outfold_star: "results/star"
+outfold_counts: "results/counts"
+outfold_norm: "results/norm_counts"
+outfold_binned: "results/binned_norm_counts"
+
 Species: GRCm39
 read_length: 75
 Bin_size:

@@ -17,7 +17,7 @@ rule all:
 
 rule download_ensembl_gtf:
     output: 
-        "resources/genome/GRCm39/gene_annotation.gtf"
+        "{config['outfold_genome']}/GRCm39/gene_annotation.gtf"
     params: 
         url = lambda wildcards: config['URLs']['GRCm39']['gtf']
     shell:
@@ -28,7 +28,7 @@ rule download_ensembl_gtf:
 
 rule download_ensembl_cdna:
     output: 
-        "resources/genome/GRCm39/cdna.fa"
+        "{config['outfold_genome']}/GRCm39/cdna.fa"
     params: 
         url = lambda wildcards: config['URLs']['GRCm39']['cdna']
     shell:
@@ -39,7 +39,7 @@ rule download_ensembl_cdna:
 
 rule download_ensembl_genome:
     output: 
-        "resources/genome/GRCm39/genome.fa"
+        "{config['outfold_genome']}/GRCm39/genome.fa"
     params:
         url = lambda wildcards: config['URLs']['GRCm39']['genome']
     shell:
@@ -54,10 +54,10 @@ rule download_ensembl_genome:
 
 rule star_genome_index:
     input:
-        genome = "resources/genome/GRCm39/genome.fa",
-        gtf = "resources/genome/GRCm39/gene_annotation.gtf"
+        genome = "{config['outfold_genome']}/GRCm39/genome.fa",
+        gtf = "{config['outfold_genome']}/GRCm39/gene_annotation.gtf"
     output:
-        genome_dir = directory("resources/genome/GRCm39/star_index/")
+        genome_dir = directory("{config['outfold_genome']}/GRCm39/star_index/")
     params:
         overhang = config['read_length']-1
     threads: 24
@@ -77,10 +77,10 @@ rule star_genome_index:
 rule star_align:
     input:
         fq = "resources/fastq/{sample}.fastq",
-        gtf = "resources/genome/GRCm39/gene_annotation.gtf",
-        genome_dir = "resources/genome/GRCm39/star_index/"
+        gtf = "{config['outfold_genome']}/GRCm39/gene_annotation.gtf",
+        genome_dir = "{config['outfold_genome']}/GRCm39/star_index/"
     output:
-        "results/star/{sample}/Aligned.sortedByCoord.out.bam"
+        "{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam"
     params:
         prefix="results/star/{sample}/",
         outsamtype = "BAM SortedByCoordinate",
@@ -105,9 +105,9 @@ rule star_align:
 
 rule sam_index:
     input:
-        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam"
+        bam="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam"
     output:
-        bam_index="results/star/{sample}/Aligned.sortedByCoord.out.bam.bai"
+        bam_index="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam.bai"
     shell:
         """
         ml gcc/11.3.0 samtools
@@ -120,9 +120,9 @@ rule sam_index:
 
 rule chrom_size:
     input:
-        genome="resources/genome/GRCm39/genome.fa"
+        genome="{config['outfold_genome']}/GRCm39/genome.fa"
     output:
-        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
+        chrom_size="{config['outfold_genome']}/GRCm39/mm39.chrom.sizes"
     shell:
         """
         ml gcc/11.3.0 samtools
@@ -132,9 +132,9 @@ rule chrom_size:
 
 rule coverage_bedgraph:
     input:
-        bam="results/star/{sample}/Aligned.sortedByCoord.out.bam",
+        bam="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam",
     output:
-        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph"
+        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph"
     params:
         strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else ''
     shell:
@@ -145,32 +145,22 @@ rule coverage_bedgraph:
 
 rule get_total_count:
     input:
-        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph"
+        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph"
     output:
-        counts="results/star/{sample}/total_counts_{strand}.txt"
+        counts="{config['outfold_counts']}/{sample}/total_counts_{strand}.txt"
     shell:
         """
         count=$(awk '{{sum+=$4}} END {{print sum}}' {input.bg})
         echo $count > {output.counts}
         """
 
-#rule get_median_total_count:
-#    input:
-#        total_counts=expand("results/star/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands'])
-#    output:
-#        "results/star/median_total_counts.txt"
-#    shell:
-#        """
-#        cat {input.total_counts} | sort -n | awk '{{a[NR]=$1}} END {{print (NR%2==1) ? a[(NR+1)/2] : (a[NR/2]+a[NR/2+1])/2}}' | awk '{$1=sprintf("%6.2f", $1); printf $1}' > {output}
-#        """
-
 rule normalize_sort_bedgraph:
     input:
-        bg="results/star/{sample}/coverage_3p_{strand}.bedgraph",
-        total_count="results/star/{sample}/total_counts_{strand}.txt",
-        total_counts=expand("results/star/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands']),
+        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph",
+        total_count="{config['outfold_counts']}/{sample}/total_counts_{strand}.txt",
+        total_counts=expand("{config['outfold_counts']}/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands']),
     output:
-        norm_bg="results/star/{sample}/NormCoverage_3p_{strand}.bedgraph"
+        norm_bg="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bedgraph"
     shell:
         """
         ./scripts/normalize_bedgraph.sh {input.bg} {input.total_count} {output.norm_bg} {input.total_counts} 
@@ -178,10 +168,10 @@ rule normalize_sort_bedgraph:
 
 rule norm_coverage_bw:
     input:
-        norm_bg="results/star/{sample}/NormCoverage_3p_{strand}.bedgraph",
-        chrom_size="resources/genome/GRCm39/mm39.chrom.sizes"
+        norm_bg="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bedgraph",
+        chrom_size="{config['outfold_genome']}/GRCm39/mm39.chrom.sizes"
     output:
-        bw="results/star/{sample}/NormCoverage_3p_{strand}.bw"
+        bw="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bw"
     shell:
         """
         bedGraphToBigWig {input.norm_bg} {input.chrom_size} {output.bw}
@@ -189,9 +179,9 @@ rule norm_coverage_bw:
 
 rule bin_coverage:
     input:
-        bw="results/star/{sample}/NormCoverage_3p_{strand}.bw"
+        bw="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bw"
     output:
-        bin_bw="results/star/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw"
+        bin_bw="{config['outfold_binned']}/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw"
     shell:
         """
         python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
