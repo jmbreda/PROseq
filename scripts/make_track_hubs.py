@@ -76,7 +76,7 @@ if __name__ == '__main__':
                 fout.write("\ttype bigWig\n")
                 if strand == 'forward':
                     fout.write("\tcolor 0,0,255\n")
-                else:
+                elif strand == 'reverse':
                     fout.write("\tcolor 255,0,0\n")
                     fout.write("\tnegateValues on\n")
                 fout.write(f"\n")
