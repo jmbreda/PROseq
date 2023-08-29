@@ -26,6 +26,14 @@
         "time" : "02:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
+    },
+
+    "cutadapt" :
+    {
+        "name" : "cutadapt",
+        "time" : "01:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
     }
 
 }

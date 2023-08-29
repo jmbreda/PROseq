@@ -7,8 +7,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand("results/star/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw", sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
-
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
 
 
 ##-------------------------------------------------------------------##
@@ -17,7 +16,7 @@ rule all:
 
 rule download_ensembl_gtf:
     output: 
-        "{config['outfold_genome']}/GRCm39/gene_annotation.gtf"
+        os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
     params: 
         url = lambda wildcards: config['URLs']['GRCm39']['gtf']
     shell:
@@ -28,7 +27,7 @@ rule download_ensembl_gtf:
 
 rule download_ensembl_cdna:
     output: 
-        "{config['outfold_genome']}/GRCm39/cdna.fa"
+        os.path.join(config['outfold_genome'],config['Species'],"cdna.fa")
     params: 
         url = lambda wildcards: config['URLs']['GRCm39']['cdna']
     shell:
@@ -39,7 +38,7 @@ rule download_ensembl_cdna:
 
 rule download_ensembl_genome:
     output: 
-        "{config['outfold_genome']}/GRCm39/genome.fa"
+        os.path.join(config['outfold_genome'],config['Species'],"genome.fa")
     params:
         url = lambda wildcards: config['URLs']['GRCm39']['genome']
     shell:
@@ -54,10 +53,10 @@ rule download_ensembl_genome:
 
 rule star_genome_index:
     input:
-        genome = "{config['outfold_genome']}/GRCm39/genome.fa",
-        gtf = "{config['outfold_genome']}/GRCm39/gene_annotation.gtf"
+        genome = os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
+        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
     output:
-        genome_dir = directory("{config['outfold_genome']}/GRCm39/star_index/")
+        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],"star_index"))
     params:
         overhang = config['read_length']-1
     threads: 24
@@ -74,15 +73,30 @@ rule star_genome_index:
              --runThreadN {threads}
         """
 
+rule cutadapt:
+    input:
+        fq = os.path.join(config['outfold_fastq'],"{sample}.fastq")
+    output:
+        fq_trimmed = os.path.join(config['outfold_fastq'],"{sample}_trimmed.fastq"),
+        report = os.path.join(config['outfold_fastq'],"{sample}_trimmed_report.txt")
+    params:
+        adapter = config['adapter']
+    threads: 12
+    shell:
+        """
+        source activate cutadapt
+        cutadapt -a {params.adapter} -o {output.fq_trimmed} -j 12 {input.fq} > {output.report}
+        """
+
 rule star_align:
     input:
-        fq = "resources/fastq/{sample}.fastq",
-        gtf = "{config['outfold_genome']}/GRCm39/gene_annotation.gtf",
-        genome_dir = "{config['outfold_genome']}/GRCm39/star_index/"
+        fq = os.path.join(config['outfold_fastq'],"{sample}.fastq"),
+        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
+        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],"star_index"))
     output:
-        "{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam"
+        os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam")
     params:
-        prefix="results/star/{sample}/",
+        prefix=os.path.join(config['outfold_star'],"{sample}/"),
         outsamtype = "BAM SortedByCoordinate",
         limitram = 81000000000
     threads: 12
@@ -105,9 +119,9 @@ rule star_align:
 
 rule sam_index:
     input:
-        bam="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam"
+        bam=os.path.join(config['outfold_star'],"{sample}/Aligned.sortedByCoord.out.bam")
     output:
-        bam_index="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam.bai"
+        bam_index=os.path.join(config['outfold_star'],"{sample}/Aligned.sortedByCoord.out.bam.bai")
     shell:
         """
         ml gcc/11.3.0 samtools
@@ -120,9 +134,9 @@ rule sam_index:
 
 rule chrom_size:
     input:
-        genome="{config['outfold_genome']}/GRCm39/genome.fa"
+        genome=os.path.join(config['outfold_genome'],config['Species'],"genome.fa")
     output:
-        chrom_size="{config['outfold_genome']}/GRCm39/mm39.chrom.sizes"
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
     shell:
         """
         ml gcc/11.3.0 samtools
@@ -130,24 +144,25 @@ rule chrom_size:
         cut -f1,2 {input.genome}.fai > {output.chrom_size}
         """
 
+# for PRO-seq data, we only need the 3'-end of the reads. However the protocol repots reverse complement of the reads. So I take the 5'-end and flip the strand.
 rule coverage_bedgraph:
     input:
-        bam="{config['outfold_star']}/{sample}/Aligned.sortedByCoord.out.bam",
+        bam=os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam")
     output:
-        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph"
+        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph")
     params:
-        strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else ''
+        strand = lambda wildcards: '-' if wildcards.strand == "forward" else '+' if wildcards.strand == "reverse" else ''
     shell:
         """
         ml gcc/11.3.0 samtools bedtools2
-        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -strand {params.strand} -3 | grep "^\<chr" > {output.bg}
+        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -strand {params.strand} -5 | grep "^\<chr" > {output.bg}
         """
 
 rule get_total_count:
     input:
-        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph"
+        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph")
     output:
-        counts="{config['outfold_counts']}/{sample}/total_counts_{strand}.txt"
+        counts=os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt")
     shell:
         """
         count=$(awk '{{sum+=$4}} END {{print sum}}' {input.bg})
@@ -156,11 +171,11 @@ rule get_total_count:
 
 rule normalize_sort_bedgraph:
     input:
-        bg="{config['outfold_counts']}/{sample}/coverage_3p_{strand}.bedgraph",
-        total_count="{config['outfold_counts']}/{sample}/total_counts_{strand}.txt",
-        total_counts=expand("{config['outfold_counts']}/{sample}/total_counts_{strand}.txt", sample=config['Samples'], strand=config['Strands']),
+        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph"),
+        total_count=os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt"),
+        total_counts=expand(os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt"),sample=config['Samples'], strand=config['Strands'])
     output:
-        norm_bg="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bedgraph"
+        norm_bg=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bedgraph")
     shell:
         """
         ./scripts/normalize_bedgraph.sh {input.bg} {input.total_count} {output.norm_bg} {input.total_counts} 
@@ -168,10 +183,10 @@ rule normalize_sort_bedgraph:
 
 rule norm_coverage_bw:
     input:
-        norm_bg="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bedgraph",
-        chrom_size="{config['outfold_genome']}/GRCm39/mm39.chrom.sizes"
+        norm_bg=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bedgraph"),
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
     output:
-        bw="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bw"
+        bw=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw")
     shell:
         """
         bedGraphToBigWig {input.norm_bg} {input.chrom_size} {output.bw}
@@ -179,9 +194,9 @@ rule norm_coverage_bw:
 
 rule bin_coverage:
     input:
-        bw="{config['outfold_norm']}/{sample}/NormCoverage_3p_{strand}.bw"
+        bw=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw")
     output:
-        bin_bw="{config['outfold_binned']}/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw"
+        bin_bw=os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw")
     shell:
         """
         python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
