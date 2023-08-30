@@ -202,6 +202,26 @@ rule bin_coverage:
         python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
         """
 
+
+##--------------------------------------##
+##  Get gene phase and amplitude        ##
+##--------------------------------------##
+
+rule get_gene_phase_amp:
+    input:
+        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
+    params:
+        bin_size=config['Bin_size']
+    output:
+        gtf_gene=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf"),
+        gene_phase_amp=os.path.join(config['outfold_genome'],config['Species'],"gene_phase_amp.gtf")
+    shell:
+        """
+        awk '$3=="gene"' {input.gtf} | grep "^chr" > {output.gtf_gene}
+        python scripts/get_gene_phase.py --gtf {output.gtf_gene} --bin_size {params.bin_size} --outfile {output.gene_phase_amp}
+        """
+
 ##--------------------------------------##
 ##  Track Hub                           ##
 ##--------------------------------------##
+
