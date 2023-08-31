@@ -48,6 +48,17 @@ if __name__ == '__main__':
     os.makedirs(f"{track_hub_folder}/{genome}", exist_ok=True)
     outfile=f"{track_hub_folder}/{genome}/trackDb.txt"
     with open(outfile,'w', encoding="utf-8") as fout:
+        
+        # Bed tracks with gene phase
+        fout.write(f"track gene_phase\n")
+        fout.write("type bigBed 9\n")
+        fout.write("itemRgb on\n")
+        fout.write(f"shortLabel Gene phase\n")
+        fout.write(f"longLabel Gene phase and amplitude mapped in RGB space (red: 0, yellow: pi/3, green: 2pi/3, cyan: pi, blue: 4pi/3, magenta:5pi/3)\n")
+        fout.write(f"bigDataUrl {track_hub_url}/tracks/gene_phase.bb\n")
+        fout.write("visibility pack\n")
+        #fout.write("maxHeightPixels 200:40:10")
+        fout.write("\n")
     
         # BigWig composite tracks
         fout.write(f"track PROseq\n")
@@ -60,7 +71,7 @@ if __name__ == '__main__':
         fout.write("longLabel PRO-seq data composite track\n")
         fout.write("type bigWig\n")
         fout.write("visibility full\n")
-        #fout.write("maxHeightPixels 500:100:8\n")
+        fout.write("maxHeightPixels 100:50:8\n")
         fout.write("autoScale on\n")
         fout.write("descriptionUrl PROseq.html\n")
         fout.write("\n")
@@ -120,7 +131,6 @@ if __name__ == '__main__':
                 # maxWindowToDraw N                           # don't display track when viewing more than N bases
                 # chromosomes     chr1,chr2,...               # track contains data only on listed reference assembly sequences
                 # doWiggle        on|off                      # if on, show data as density graph, default is off
-    #
                 #fout.write(f"track {name}\n")
                 #fout.write("type bam\n")
                 #fout.write(f"bigDataUrl http://upnaesrv1.epfl.ch/PROseq/tracks/{sample}/Aligned.sortedByCoord.out.bam\n")
