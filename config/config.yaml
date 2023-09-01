@@ -15,6 +15,7 @@ outfold_star: "results/star"
 outfold_counts: "results/counts"
 outfold_norm: "results/norm_counts"
 outfold_binned: "results/binned_norm_counts"
+outfold_fig: "results/fig"
 
 Species: GRCm39
 read_length: 75

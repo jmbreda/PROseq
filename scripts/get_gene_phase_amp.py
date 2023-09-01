@@ -9,9 +9,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
     parser.add_argument('--gtf', help='Gene gtf file',type=str)
     parser.add_argument('--bin_size', help='Bin size', default=100, type=int)
-    parser.add_argument('--bw_folder', help='Data folder', type=str)
-    parser.add_argument('--outfile', help='Output bed file', type=str)
-    parser.add_argument('--out_phase_amp_score', help='Output phase and amplitude file', type=str)
+    parser.add_argument('--bw_folder', help='Input data folder', type=str)
+    parser.add_argument('--out_bed', help='Output bed file', type=str)
+    parser.add_argument('--out_phase_amp_score', help='Output phase, amplitude and score table', type=str)
+    parser.add_argument('--out_fig', help='output figure pdf', type=str)
     args = parser.parse_args()
     return args
 
@@ -32,7 +33,7 @@ def hsv_to_rgb( h:scalar, s:scalar, v:scalar) -> tuple:
         if i==4: return (t, w, v)
         if i==5: return (v, w, q)
     else: return (v, v, v)
-
+    
 
 if __name__ == '__main__':
     
@@ -77,6 +78,8 @@ if __name__ == '__main__':
     Phi = np.zeros(gtf.shape[0])
     Amp = np.zeros(gtf.shape[0])
     Score = np.zeros(gtf.shape[0])
+    R2 = np.zeros(gtf.shape[0])
+    Pval = np.zeros(gtf.shape[0])
     for g in range(gtf.shape[0]):
         if g%1000==0:
             print(np.round(g/gtf.shape[0],2))
@@ -124,7 +127,25 @@ if __name__ == '__main__':
             Phi[g] = np.angle(f_n_w)
             Score[g] = df.values.sum()
 
-    bed['score'] = Score
+    bed['score'] = Score/Score.max()*1000
+    bed['score'] = bed['score'].astype(int)
+
+    # get gene color
+    for g in range(gtf.shape[0]):
+        # normalize phase and amplitude in [0,1]
+        h = (Phi[g] % (2*np.pi))/(2*np.pi)
+        s = 1 - np.exp(-Amp[g])
+        v = 1 - np.exp(-Amp[g])
+        rgb = hsv_to_rgb(h,s,v)
+        bed.at[g,'itemRgb'] = ','.join([str(int(255*rgb[i])) for i in range(3)])
+    
+    # save bed file
+    bed.to_csv(args.out_bed,sep='\t',index=False,header=False)
+    
+    # save phase, amplitude and score table
+    df = pd.DataFrame({'chr':gtf['chr'],'start':gtf['start'],'end':gtf['end'],'strand':gtf['strand'],'gene_name':gtf['gene_name'],'phase':Phi,'amplitude':Amp,'score':Score})
+    df.to_csv(args.out_phase_amp_score,index=False,header=True)
+
 
     # plot phase and amplitude distribution of genes and polar plot
     n_rows = 1
@@ -155,19 +176,4 @@ if __name__ == '__main__':
     plt.xlabel('Phase')
     plt.ylabel('Amplitude')
     plt.tight_layout()
-    plt.savefig('gene_phase_amp.pdf',dpi=300)
-
-    for g in range(gtf.shape[0]):
-        # normalize phase and amplitude in [0,1]
-        h = (Phi[g] % (2*np.pi))/(2*np.pi)
-        s = 1 - np.exp(-Amp[g])
-        v = 1 - np.exp(-Amp[g])
-        rgb = hsv_to_rgb(h,s,v)
-        bed.at[g,'itemRgb'] = ','.join([str(int(255*rgb[i])) for i in range(3)])
-    
-    # save bed file
-    bed.to_csv(args.outfile,sep='\t',index=False,header=True)
-
-    # save phase, amplitude and score
-    df = pd.DataFrame({'gene_name':gtf['gene_name'],'phase':Phi,'amplitude':Amp,'score':Score})
-    df.to_csv(args.out_phase_amp_score,index=False,header=True)
+    plt.savefig(args.out_fig,dpi=300)

@@ -207,19 +207,41 @@ rule bin_coverage:
 ##  Get gene phase and amplitude        ##
 ##--------------------------------------##
 
-rule get_gene_phase_amp:
+rule get_gene_only_gtf:
     input:
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
-    params:
-        bin_size=config['Bin_size']
     output:
-        gtf_gene=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf"),
-        gene_phase_amp=os.path.join(config['outfold_genome'],config['Species'],"gene_phase_amp.gtf")
+        gtf_gene=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf")
     shell:
         """
         awk '$3=="gene"' {input.gtf} | grep "^chr" > {output.gtf_gene}
-        python scripts/get_gene_phase.py --gtf {output.gtf_gene} --bin_size {params.bin_size} --outfile {output.gene_phase_amp}
         """
+
+rule get_gene_phase_amp:
+    input:
+        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf")
+        bw_folder=config['outfold_binned']
+    output:
+        bed=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bed"),
+        gene_phase_amp=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.csv"),
+        fig=os.path.join(config['outfold_fig'],"gene_phase_amp_{bin_size}bp.pdf")
+    shell:
+        """
+        python scripts/get_gene_phase.py --gtf {input.gtf} --bin_size {wildcards.bin_size} --bw_folder {input.bw_folder} --out_bed {output.bed} --out_txt {output.gene_phase_amp} --out_fig {output.fig}
+        """
+
+rule bed_to_bigBed:
+    input:
+        bed=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
+    output:
+        bb=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bb")
+    shell:
+        """
+        bedSort {input.bed} {input.bed}
+        bedToBigBed {input.bed} {input.chrom_size} {output.bb}
+        """
+    
 
 ##--------------------------------------##
 ##  Track Hub                           ##
