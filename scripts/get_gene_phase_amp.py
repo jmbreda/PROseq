@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pyBigWig as bw
 import os
 import argparse
+from scipy.stats import beta
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
@@ -33,12 +34,15 @@ def hsv_to_rgb( h:scalar, s:scalar, v:scalar) -> tuple:
         if i==4: return (t, w, v)
         if i==5: return (v, w, q)
     else: return (v, v, v)
-    
+
 
 if __name__ == '__main__':
     
     args = parse_args()
     T = np.arange(0,48,4)
+    n = 1
+    N = len(T)
+    P = 24
 
     # Read gtf file
     gtf = pd.read_csv(args.gtf,sep='\t',header=None)
@@ -88,13 +92,14 @@ if __name__ == '__main__':
         start = gtf.at[g,'start']
         end = gtf.at[g,'end']
         strand = gtf.at[g,'strand']
-            
+        
+        # get gene bins
         Bins = np.arange(start - start%args.bin_size,end + args.bin_size - end%args.bin_size,args.bin_size)
 
+        # get gene expression table
         X = np.zeros((len(Bins),len(T)))
         X[:] = np.nan
         df = pd.DataFrame(X,index=Bins,columns=T)
-
         for t in T:
             vals = f[t][strand].intervals(chr,start,end)
             if vals is None:
@@ -104,28 +109,51 @@ if __name__ == '__main__':
             counts = [vals[i][2] for i in range(len(vals))]
             df.loc[bins,t] = counts
 
+        # remove bins with more than 80% nan values (at least 3 time points with data)
         idx_out = np.isnan(df.values).sum(1) > .8*T.shape[0]
         if idx_out.all():
             Amp[g] = 0
             Phi[g] = 0
             Score[g] = 0
+            R2[g] = 0
+            Pval[g] = 0
         else:
             df = df.loc[~idx_out,:]
             df[np.isnan(df.values)] = 0
-            # log transform
+
+            # log transform and add pseudo counts
             X = np.log(df.values + 1/args.bin_size)
+
+            # compute weights
             w = df.values.sum(1)
             w = w/w.sum()
+
             # fourier transform
-            n = 1
-            f_0 = np.sum(X,1)
-            f_n = np.sum(X*np.exp(-1j*2*n*np.pi*T/24),1)
-            # weighted average
-            f_n_w = np.sum(f_n*w)
+            f_n = np.sum(X*np.exp(-1j*2*n*np.pi*T/P),1)
+            a_n = 4/N * np.abs(f_n) # *4 ??
+            phi_n = np.arctan2(np.imag(f_n),np.real(f_n)) # ?? -im/re ??
+            mu_n = 1/N * np.sum(X,1)
+
+            #compute the residuals and statistics of the fit (pval)
+            x_hat = mu_n[:,None] + 0.5 * a_n[:,None] * np.cos(2 * np.pi / P * T[None,:] + phi_n[:,None])
+            sig2_res = np.var(X - x_hat,1)
+            sig2_tot = np.var(X,1)
+            R2 = 1 - sig2_res / sig2_tot
+            p = 3
+            pval = 1 - beta.cdf(R2, (p - 1) / 2, (N - p) / 2)
+            phi_n[phi_n<0] += np.pi * 2
+
+            # average phase and amp per gene
+            f_m = np.sum(f_n*w)
+            a_m = 4/N * np.abs(f_m)
+            phi_m = np.arctan2(np.imag(f_m),np.real(f_m))
+
             # phase and amplitude
-            Amp[g] = np.abs(f_n_w)
-            Phi[g] = np.angle(f_n_w)
+            Amp[g] = a_m
+            Phi[g] = phi_m
             Score[g] = df.values.sum()
+            R2[g] = R2.mean()
+            Pval[g] = pval.mean()
 
     bed['score'] = Score/Score.max()*1000
     bed['score'] = bed['score'].astype(int)
