@@ -140,15 +140,13 @@ if __name__ == '__main__':
     
     df_out.to_csv(args.out_table,sep='\t',index=False)
 
-
     # get bin color
     # hue: phase (0 to 1)
     h = (df_out['phase'].values % (2*np.pi))/(2*np.pi)
-    # saturation: amplitude (0 to 1)
-    s = 1 - np.exp(-df_out['amplitude'].values)
-    # value: amplitude (0.5 to 1)
-    v = 1 - 0.5*np.exp(-df_out['amplitude'].values)
-    #v = 1 - np.exp(-df_out['amplitude'])
+    # saturation: amplitude (0.5 to 1)
+    s = 1 - 0.5*np.exp(-df['amplitude'].values)
+    # value: fit R2 (0 to 1)
+    v = df['R2'].values
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file
