@@ -168,9 +168,9 @@ if __name__ == '__main__':
     # hue: phase (0 to 1)
     h = (df['phase'].values % (2*np.pi))/(2*np.pi)
     # saturation: amplitude (0.5 to 1)
-    s = 1 - 0.5*np.exp(-df['amplitude'].values)
+    s = 1 - 0.8*np.exp(-df['amplitude'].values)
     # value: fit R2 (0 to 1)
-    v = df['R2'].values
+    v = .8*df['R2'].values + .2
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file
