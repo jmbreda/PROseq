@@ -118,7 +118,9 @@ if __name__ == '__main__':
             x_hat = mu_n[:,None] + 0.5 * a_n[:,None] * np.cos(2 * np.pi / P * T[None,:] + phi_n[:,None])
             sig2_res = np.var(X - x_hat,1)
             sig2_tot = np.var(X,1)
-            R2 = 1 - sig2_res / sig2_tot
+            R2 = np.zeros(sig2_res.shape)
+            R2[sig2_tot==0] = 0
+            R2[sig2_tot!=0] = 1 - sig2_res[sig2_tot!=0] / sig2_tot[sig2_tot!=0]
             p = 3
             pval = 1 - beta.cdf(R2, (p - 1) / 2, (N - p) / 2)
             phi_n[phi_n<0] += np.pi * 2
@@ -144,9 +146,9 @@ if __name__ == '__main__':
     # hue: phase (0 to 1)
     h = (df_out['phase'].values % (2*np.pi))/(2*np.pi)
     # saturation: amplitude (0.5 to 1)
-    s = 1 - 0.5*np.exp(-df['amplitude'].values)
+    s = 1 - 0.5*np.exp(-df_out['amplitude'].values)
     # value: fit R2 (0 to 1)
-    v = df['R2'].values
+    v = df_out['R2'].values
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file

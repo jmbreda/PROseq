@@ -16,6 +16,7 @@ outfold_counts: "results/counts"
 outfold_norm: "results/norm_counts"
 outfold_binned: "results/binned_norm_counts"
 outfold_fig: "results/fig"
+outfold_phase_amp: "results/phase_amp"
 
 Species: GRCm39
 read_length: 75

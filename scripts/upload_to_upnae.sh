@@ -4,4 +4,5 @@
 #scp -r results/star upnae:PROseq/results/
 #scp -r results/counts upnae:PROseq/results/
 #scp -r results/norm_counts upnae:PROseq/results/
-scp -r results/binned_norm_counts upnae:PROseq/results/
+#scp -r results/binned_norm_counts upnae:PROseq/results/
+scp -r results/phase_amp upnae:PROseq/results/
