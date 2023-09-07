@@ -145,10 +145,10 @@ if __name__ == '__main__':
     # get bin color
     # hue: phase (0 to 1)
     h = (df_out['phase'].values % (2*np.pi))/(2*np.pi)
-    # saturation: amplitude (0.5 to 1)
-    s = 1 - 0.5*np.exp(-df_out['amplitude'].values)
-    # value: fit R2 (0 to 1)
-    v = df_out['R2'].values
+    # saturation: amplitude (0.2 to 1)
+    s = 1 - 0.8*np.exp(-5*df_out['amplitude'].values)
+    # value: fit R2 (0.2 to 1)
+    v = .8*df_out['R2'].values + .2
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file
