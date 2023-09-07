@@ -34,6 +34,22 @@
         "time" : "01:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
+    },
+
+    "get_gene_phase_amp" :
+    {
+        "name" : "get_gene_phase_amp",
+        "time" : "06:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    },
+
+    "get_bin_phase_amp" :
+    {
+        "name" : "get_bin_phase_amp",
+        "time" : "06:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
     }
 
 }
