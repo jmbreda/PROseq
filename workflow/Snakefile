@@ -7,7 +7,10 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_binned'],"bin_phase_amp_{bin_size}bp.bb"), bin_size=config['Bin_size']),
+        expand(os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bb"), bin_size=config['Bin_size'])
+        
 
 
 ##-------------------------------------------------------------------##
@@ -141,7 +144,20 @@ rule chrom_size:
         """
         ml gcc/11.3.0 samtools
         samtools faidx {input.genome}
-        cut -f1,2 {input.genome}.fai > {output.chrom_size}
+        cut -f1,2 {input.genome}.fai | awk -v bs=1000 '{{print $1"\t"$2 + bs - $2 % bs}}' > {output.chrom_size}
+        """
+
+# make sure chromosome length are multiples of bin size
+rule chrom_size_bin_size:
+    input:
+        genome=os.path.join(config['outfold_genome'],config['Species'],"genome.fa")
+    output:
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes.{bin_size}bp")
+    shell:
+        """
+        ml gcc/11.3.0 samtools
+        samtools faidx {input.genome}
+        cut -f1,2 {input.genome}.fai | awk -v bs={wildcards.bin_size} '{{print $1"\t"$2 + bs - $2 % bs}}' > {output.chrom_size}
         """
 
 # for PRO-seq data, we only need the 3'-end of the reads. However the protocol repots reverse complement of the reads. So I take the 5'-end and flip the strand.
@@ -178,7 +194,7 @@ rule normalize_sort_bedgraph:
         norm_bg=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bedgraph")
     shell:
         """
-        ./scripts/normalize_bedgraph.sh {input.bg} {input.total_count} {output.norm_bg} {input.total_counts} 
+        ./scripts/normalize_bedgraph.sh {input.bg} {input.total_count} {output.norm_bg} {input.total_counts}
         """
 
 rule norm_coverage_bw:
@@ -204,36 +220,70 @@ rule bin_coverage:
 
 
 ##--------------------------------------##
+##  Get bin phase and amplitude         ##
+##--------------------------------------##
+
+    
+rule get_bin_phase_amp:
+    input:
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
+    output:
+        table=os.path.join(config['outfold_binned'],"bin_phase_amp_{bin_size}bp.csv"),
+        bed=os.path.join(config['outfold_binned'],"bin_phase_amp_{bin_size}bp.bed")
+    params:
+        bw_folder=config['outfold_binned']
+    threads: 12
+    shell:
+        """
+        python scripts/get_bin_phase_amp.py --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --out_bed {output.bed} --out_table {output.table}
+        """
+
+rule bin_bed_to_bigBed:
+    input:
+        bed=os.path.join(config['outfold_binned'],"bin_phase_amp_{bin_size}bp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes.{bin_size}bp")
+    output:
+        bb=os.path.join(config['outfold_binned'],"bin_phase_amp_{bin_size}bp.bb")
+    shell:
+        """
+        bedSort {input.bed} {input.bed}
+        bedToBigBed {input.bed} {input.chrom_size} {output.bb}
+        """
+
+##--------------------------------------##
 ##  Get gene phase and amplitude        ##
 ##--------------------------------------##
 
-rule get_gene_only_gtf:
+rule get_gene_gtf:
     input:
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
     output:
-        gtf_gene=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf")
+        gtf_gene=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf")
     shell:
         """
-        awk '$3=="gene"' {input.gtf} | grep "^chr" > {output.gtf_gene}
+        ./scripts/get_gene_gtf.sh {input.gtf} {output.gtf_gene}
         """
 
 rule get_gene_phase_amp:
     input:
-        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene.gtf")
-        bw_folder=config['outfold_binned']
+        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
+        bw=expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
     output:
         bed=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bed"),
-        gene_phase_amp=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.csv"),
+        table=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.csv"),
         fig=os.path.join(config['outfold_fig'],"gene_phase_amp_{bin_size}bp.pdf")
+    params:
+        bw_folder=config['outfold_binned']
+    threads: 12
     shell:
         """
-        python scripts/get_gene_phase.py --gtf {input.gtf} --bin_size {wildcards.bin_size} --bw_folder {input.bw_folder} --out_bed {output.bed} --out_txt {output.gene_phase_amp} --out_fig {output.fig}
+        python scripts/get_gene_phase_amp.py --gtf {input.gtf} --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --out_bed {output.bed} --out_table {output.table} --out_fig {output.fig}
         """
 
-rule bed_to_bigBed:
+rule gene_bed_to_bigBed:
     input:
         bed=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bed"),
-        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes.{bin_size}bp")
     output:
         bb=os.path.join(config['outfold_binned'],"gene_phase_amp_{bin_size}bp.bb")
     shell:
@@ -241,7 +291,7 @@ rule bed_to_bigBed:
         bedSort {input.bed} {input.bed}
         bedToBigBed {input.bed} {input.chrom_size} {output.bb}
         """
-    
+
 
 ##--------------------------------------##
 ##  Track Hub                           ##
