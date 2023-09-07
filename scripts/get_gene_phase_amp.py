@@ -92,6 +92,7 @@ if __name__ == '__main__':
 
     # Get gene expression matrix
     X = np.zeros((gtf.shape[0],len(T)))
+    X[:] = np.nan
     for g in range(gtf.shape[0]):
         if g%1000==0:
             print(np.round(g/gtf.shape[0],2))
@@ -103,12 +104,12 @@ if __name__ == '__main__':
         strand = gtf.at[g,'strand']
 
         # get gene bins
-        Bins = np.arange(start - start%args.bin_size,end + args.bin_size - end%args.bin_size,args.bin_size)
+        Bins = np.arange(start - start%args.bin_size, end + args.bin_size - end%args.bin_size, args.bin_size)
 
         # get gene expression table
         X_g = np.zeros((len(Bins),len(T)))
         X_g[:] = np.nan
-        df = pd.DataFrame(X,index=Bins,columns=T)
+        df = pd.DataFrame(X_g,index=Bins,columns=T)
         for t in T:
             vals = f[t][strand].intervals(chr,start,end)
             if vals is None:
@@ -125,7 +126,7 @@ if __name__ == '__main__':
             X[g,:] = np.array([0]*len(T))
         else:
             df = df.loc[~idx_out,:]
-            df[np.isnan(df.values)] = 0
+            df = df.fillna(0)
 
             # log transform, add pseudo counts and average gene expression across bins
             X[g,:] = np.mean(np.log(df.values + 1/args.bin_size),0)
@@ -142,7 +143,9 @@ if __name__ == '__main__':
     x_hat = mu_n[:,None] + 0.5 * a_n[:,None] * np.cos(2 * np.pi / P * T[None,:] + phi_n[:,None])
     sig2_res = np.var(X - x_hat,1)
     sig2_tot = np.var(X,1)
-    R2 = 1 - sig2_res / sig2_tot
+    R2 = np.zeros(sig2_res.shape)
+    R2[sig2_tot==0] = 0
+    R2[sig2_tot!=0] = 1 - sig2_res[sig2_tot!=0] / sig2_tot[sig2_tot!=0]
     p = 3
     pval = 1 - beta.cdf(R2, (p - 1) / 2, (N - p) / 2)
     phi_n[phi_n<0] += np.pi * 2
