@@ -25,8 +25,7 @@ adapter: TGGAATTCTCGGGTGCCAAGG
 Bin_size:
 #    - '100'
     - '1000'
-#    - '10000'
-
+    - '10000'
 Samples:
     - PRO_SEQ_CT00_S1_R1_001
     - PRO_SEQ_CT04_S2_R1_001
@@ -67,3 +66,7 @@ Chromosomes:
         - chrX
         - chrY
         - chrM
+
+Space_Time_Fourier:
+    P: 24
+    sigma_Mb: 1

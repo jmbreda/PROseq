@@ -148,7 +148,8 @@ if __name__ == '__main__':
     # saturation: amplitude (0.2 to 1)
     s = 1 - 0.8*np.exp(-5*df_out['amplitude'].values)
     # value: sqrt(R2) (0 to 1)
-    v = np.sqrt(df_out['R2'].values)
+    # v = np.sqrt(df_out['R2'].values)
+    v = 1
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file
