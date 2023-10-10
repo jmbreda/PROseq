@@ -50,6 +50,13 @@
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
-    }
+    },
 
+    "time_space_fourier_transform" :
+    {
+        "name" : "time_space_fourier_transform",
+        "time" : "48:00:00",
+        "cpus-per-task" : 24,
+        "mem" : "160G"
+    }
 }
