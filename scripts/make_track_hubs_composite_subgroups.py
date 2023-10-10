@@ -52,22 +52,9 @@ if __name__ == '__main__':
     os.makedirs(f"{track_hub_folder}/{genome}", exist_ok=True)
     outfile=f"{track_hub_folder}/{genome}/trackDb.txt"
     with open(outfile,'w', encoding="utf-8") as fout:
-        
-        for bin_size in [100,1000,10000]:
-            # Bed tracks with gene phase
-            fout.write(f"track gene_phase_{bin_size}\n")
-            fout.write("type bigBed 9\n")
-            fout.write("itemRgb on\n")
-            fout.write(f"shortLabel Gene phase {bin_size}bp\n")
-            fout.write(f"longLabel Gene phase and amplitude {bin_size}bp mapped in RGB space (red: 0, yellow: pi/3, green: 2pi/3, cyan: pi, blue: 4pi/3, magenta:5pi/3)\n")
-            fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp_{bin_size}bp.bb\n")
-            if bin_size == 100:
-                fout.write("visibility pack\n")
-            else:
-                fout.write("visibility hide\n")
-            fout.write("\n")
 
-            # Bed tracks with bin phase
+        # Bed tracks with bin phase
+        for bin_size in [100,1000,10000]:
             for strand in Strands:
                 fout.write(f"track bin_phase_{bin_size}_{strand}\n")
                 fout.write("type bigBed 9\n")
@@ -81,37 +68,57 @@ if __name__ == '__main__':
                     fout.write("visibility hide\n")
                 fout.write("\n")
 
-            # BigWig composite tracks
-            fout.write(f"track PROseq_{bin_size}bp\n")
-            fout.write("compositeTrack on\n")
-            fout.write("subGroup1 t Time 0=0 24=24 4=4 28=28 8=8 32=32 12=12 36=36 16=16 40=40 20=20 44=44\n")
-            fout.write("subGroup2 s Strand forward=forward reverse=reverse\n")
-            fout.write("dimensions dimX=s dimY=t\n")
-            fout.write("sortOrder s=+ t=+\n")
-            fout.write(f"shortLabel PROseq {bin_size}bp\n")
-            fout.write(f"longLabel PRO-seq data composite track {bin_size}bp\n")
-            fout.write("type bigWig\n")
-            if bin_size == 1000:
-                fout.write("visibility full\n")
-            else:
-                fout.write("visibility hide\n")
-            fout.write("maxHeightPixels 100:50:8\n")
-            fout.write("autoScale on\n")
-            fout.write("descriptionUrl PROseq.html\n")
-            fout.write("\n")
+        # Bed tracks with gene phase
+        bin_size = 100
+        
+        fout.write(f"track gene_phase_{bin_size}\n")
+        fout.write("type bigBed 9\n")
+        fout.write("itemRgb on\n")
+        fout.write(f"shortLabel Gene phase {bin_size}bp\n")
+        fout.write(f"longLabel Gene phase and amplitude {bin_size}bp mapped in RGB space (red: 0, yellow: pi/3, green: 2pi/3, cyan: pi, blue: 4pi/3, magenta:5pi/3)\n")
+        fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp_{bin_size}bp.bb\n")
+        if bin_size == 100:
+            fout.write("visibility pack\n")
+        else:
+            fout.write("visibility hide\n")
+        fout.write("\n")
+    
+        # BigWig composite tracks with bin expression
+        for bin_size in [100,1000,10000]:
+            for strand in Strands:
+                fout.write(f"track PROseq_{strand}_{bin_size}bp\n")
+                fout.write("compositeTrack on\n")
+                fout.write("subGroup1 t Time 0=0 24=24 4=4 28=28 8=8 32=32 12=12 36=36 16=16 40=40 20=20 44=44\n")
+                fout.write("dimensions dimX=t\n")
+                fout.write("sortOrder t=+\n")
+                #fout.write("subGroup2 s Strand forward=forward reverse=reverse\n")
+                #fout.write("dimensions dimX=s dimY=t\n")
+                #fout.write("sortOrder s=+ t=+\n")
+                fout.write(f"shortLabel PROseq {strand} {bin_size}bp\n")
+                fout.write(f"longLabel PRO-seq data composite track {strand} {bin_size}bp\n")
+                fout.write("type bigWig\n")
+                if bin_size == 1000:
+                    fout.write("visibility full\n")
+                else:
+                    fout.write("visibility hide\n")
+                fout.write("maxHeightPixels 100:50:8\n")
+                fout.write("autoScale group\n")
+                fout.write("descriptionUrl PROseq.html\n")
+                fout.write("\n")
 
-            for strand in Strands:    
+  
                 for sample in Samples:
                     name = '_'.join(sample.split('_')[:3])
                     time = int(sample.split('_')[2][2:])
                     if time>24:
-                        time_label = str(time-24)+"+24 " + strand[0]
+                        time_label = str(time-24)+"+24"
                     else:
                         time_label = str(time)
 
                     fout.write(f"\ttrack {name}_{strand}_{bin_size}\n")
-                    fout.write(f"\tparent PROseq_{bin_size}bp on\n")
-                    fout.write(f"\tsubGroups t={time} s={strand}\n")
+                    fout.write(f"\tparent PROseq_{strand}_{bin_size}bp on\n")
+                    #fout.write(f"\tsubGroups t={time} s={strand}\n")
+                    fout.write(f"\tsubGroups t={time}\n")
                     fout.write(f"\tshortLabel {time_label}\n")
                     fout.write(f"\tlongLabel \n")
                     fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
@@ -124,7 +131,7 @@ if __name__ == '__main__':
                         fout.write("\tcolor 255,0,0\n")
                         fout.write("\tnegateValues on\n")
                         fout.write("\tmaxLimit 0\n")
-                    fout.write(f"descriptionUrl {genome}/{name}_{strand}.html\n")
+                    fout.write(f"\tdescriptionUrl {genome}/{name}_{strand}.html\n")
                     fout.write(f"\n")
 
                     # make html files
