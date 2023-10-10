@@ -10,6 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
     parser.add_argument('--bin_size', help='Bin size', default=100, type=int)
     parser.add_argument('--bw_folder', help='Input data folder', type=str)
+    parser.add_argument('--overall_phase_amp_table', help='input table with overall phase and amp', type=str)
     parser.add_argument('--out_bed', help='Output bed file', type=str)
     parser.add_argument('--out_table', help='Output phase, amplitude, expression and fit stats table', type=str)
     args = parser.parse_args()
@@ -69,20 +70,24 @@ if __name__ == '__main__':
     n = 1
     N = len(T)
     P = 24
+    omega_n = 2*np.pi*n/P
     CHR = [f'chr{i}' for i in range(1,20)] + ['chrX','chrY','chrM']
     Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)]
     Strands = ['+','-']
+    strand_dict = {'forward':'+', 'reverse':'-', '+':'forward', '-':'reverse'}
 
     f = {}
     for sample in Samples:
         t = int(sample.split('_')[2][2:])
         f[t] = {}
         for strand in Strands:
-            if strand=='+':
-                fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_forward_bin{args.bin_size}bp.bw"
-            elif strand=='-':
-                fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_reverse_bin{args.bin_size}bp.bw"
+            fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{args.bin_size}bp.bw"
             f[t][strand] = bw.open(fin)
+
+    # get overall phase and amplitude
+    df_overall = pd.read_csv(args.overall_phase_amp_table,sep='\t')
+    x_overall = 0.5 * df_overall.amplitude.values * np.cos(omega_n*T - df_overall.phase.values)
+    del df_overall
 
     df_out = pd.DataFrame(columns=['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression'])    
     for chr in CHR:
@@ -108,14 +113,17 @@ if __name__ == '__main__':
             # log transform and add pseudo counts and sum for gene expression
             X = np.log(X + 1/args.bin_size)
 
+            # remove overall signal
+            X = X - x_overall[None,:]
+
             # fourier transform in whole gene body
-            f_n = np.sum(X*np.exp(-1j*2*n*np.pi*T/P),1)
+            f_n = np.sum(X*np.exp(-1j*omega_n*T),1)
             a_n = 4/N * np.abs(f_n) # *4 ??
-            phi_n = np.arctan2(np.imag(f_n),np.real(f_n)) # ?? -im/re ??
+            phi_n = -np.arctan2(np.imag(f_n),np.real(f_n)) # ?? -im/re ??
             mu_n = 1/N * np.sum(X,1)
 
             # compute fit's R2 and p-value
-            x_hat = mu_n[:,None] + 0.5 * a_n[:,None] * np.cos(2 * np.pi / P * T[None,:] + phi_n[:,None])
+            x_hat = mu_n[:,None] + 0.5 * a_n[:,None] * np.cos(omega_n*T[None,:] - phi_n[:,None])
             sig2_res = np.var(X - x_hat,1)
             sig2_tot = np.var(X,1)
             R2 = np.zeros(sig2_res.shape)
@@ -149,7 +157,7 @@ if __name__ == '__main__':
     s = 1 - 0.8*np.exp(-5*df_out['amplitude'].values)
     # value: sqrt(R2) (0 to 1)
     # v = np.sqrt(df_out['R2'].values)
-    v = 1
+    v = np.ones(df_out.shape[0])
     rgb = hsv_to_rgb_v(h,s,v)
 
     # create output bed file

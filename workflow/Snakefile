@@ -8,9 +8,10 @@ wildcard_constraints:
 rule all:
     input:
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
         expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"), bin_size=config['Bin_size']),
-        expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'],strand=config['Strands'])
+        #expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'],strand=config['Strands'])
 
 
 ##-------------------------------------------------------------------##
@@ -223,10 +224,22 @@ rule bin_coverage:
 ##  Get bin phase and amplitude         ##
 ##--------------------------------------##
 
+rule get_overall_phase_amp:
+    input:
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
+    output:
+        table=os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv")
+    params:
+        bw_folder=config['outfold_binned']
+    shell:
+        """
+        python scripts/get_overall_phase_amp.py --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --out_table {output.table}
+        """ 
     
 rule get_bin_phase_amp:
     input:
-        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']), # only for dependency
+        overall_phase_amp=os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv")
     output:
         table=os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp.csv"),
         bed=os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp.bed")
@@ -235,7 +248,7 @@ rule get_bin_phase_amp:
     threads: 12
     shell:
         """
-        python scripts/get_bin_phase_amp.py --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --out_bed {output.bed} --out_table {output.table}
+        python scripts/get_bin_phase_amp.py --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --overall_phase_amp_table {input.overall_phase_amp} --out_bed {output.bed} --out_table {output.table}
         """
 rule separate_stands:
     input:
@@ -278,7 +291,8 @@ rule get_gene_gtf:
 rule get_gene_phase_amp:
     input:
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
-        bw=expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
+        bw=expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']), # only for dependency
+        overall_phase_amp=os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv")
     output:
         bed=os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bed"),
         table=os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.csv"),
@@ -288,7 +302,7 @@ rule get_gene_phase_amp:
     threads: 12
     shell:
         """
-        python scripts/get_gene_phase_amp.py --gtf {input.gtf} --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --out_bed {output.bed} --out_table {output.table} --out_fig {output.fig}
+        python scripts/get_gene_phase_amp.py --gtf {input.gtf} --bin_size {wildcards.bin_size} --bw_folder {params.bw_folder} --overall_phase_amp_table {input.overall_phase_amp} --out_bed {output.bed} --out_table {output.table} --out_fig {output.fig}
         """
 
 rule gene_bed_to_bigBed:
