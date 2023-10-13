@@ -5,7 +5,7 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(description='Make bins bed file')
     parser.add_argument('-i','--input', help='Input bigwig file', required=True)
-    parser.add_argument('-b','--bin_size', help='Bin size', default=100, type=int)
+    parser.add_argument('-b','--bin_size', help='Bin size', type=int)
     parser.add_argument('-o','--output', help='Output bigwig file', required=True)
     args = parser.parse_args()
     return args

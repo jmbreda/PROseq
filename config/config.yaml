@@ -23,6 +23,7 @@ Species: GRCm39
 read_length: 75
 adapter: TGGAATTCTCGGGTGCCAAGG
 Bin_size:
+
 #    - '100'
     - '1000'
     - '10000'
@@ -69,4 +70,7 @@ Chromosomes:
 
 Space_Time_Fourier:
     P: 24
-    sigma_Mb: 1
+    sigma_Mb:
+        - 0.3
+        - 1
+        - 3

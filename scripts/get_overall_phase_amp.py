@@ -39,8 +39,8 @@ if __name__ == '__main__':
 
     # Get gene expression matrix stacking all samples
     X = np.zeros([0,len(T)])
-    for strand in Strands:
-        for chr in CHR:
+    for chr in CHR:
+        for strand in Strands:
 
             # get all expressed bins in chr
             bins = set()
@@ -69,7 +69,7 @@ if __name__ == '__main__':
                 X_bt.loc[starts,t] = np.array(vals)
 
             # remove bins with 75% missing values or more
-            idx_out = np.isnan(X_bt.values).sum(1)/T.shape[0] >= .99
+            idx_out = np.isnan(X_bt.values).sum(1)/T.shape[0] >= .75
 
             # stack X_bt to X
             if not idx_out.all():
@@ -109,6 +109,6 @@ if __name__ == '__main__':
                        'amplitude':[a_n],
                        'R2':[R2],
                        'pval':[pval],
-                       'mean_log_expression':[x]})
+                       'mean_log_expression':[x.mean()]})
     
     df.to_csv(args.out_table,sep='\t',index=False)
