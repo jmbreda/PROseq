@@ -23,6 +23,8 @@ if __name__ == '__main__':
     phi_xk = pd.read_csv(f"{args.table_phase}",sep=',',index_col=0)
     mu_x = pd.read_csv(f"{args.table_mu}",sep=',',index_col=0)
 
+    #a_xk /= mu_x.values
+
     # remove inf columns
     if False: #'inf' in a_xk.columns:
         a_xk.loc[:,'inf'] = 0

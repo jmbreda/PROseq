@@ -18,15 +18,15 @@ outfold_binned: "results/binned_norm_counts"
 outfold_fig: "results/fig"
 outfold_phase_amp: "results/phase_amp"
 outfold_space_time_fourier: "results/space_time_fourier"
+outfold_kalman: "results/kalman"
 
 Species: GRCm39
 read_length: 75
 adapter: TGGAATTCTCGGGTGCCAAGG
 Bin_size:
-
-#    - '100'
+    #- '100'
     - '1000'
-    - '10000'
+    #- '10000'
 Samples:
     - PRO_SEQ_CT00_S1_R1_001
     - PRO_SEQ_CT04_S2_R1_001
@@ -44,6 +44,8 @@ Strands:
     - forward
     - reverse
 Chromosomes:
+    Test:
+        - chr17
     GRCm39:
         - chr1
         - chr2
@@ -71,6 +73,13 @@ Chromosomes:
 Space_Time_Fourier:
     P: 24
     sigma_Mb:
-        - 0.3
-        - 1
-        - 3
+        - 0
+        #- 0.3
+        #- 1
+        #- 3
+
+Kalman:
+    win_size:
+        - 500_000
+    d_win:
+        - 250_000

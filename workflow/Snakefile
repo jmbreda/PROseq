@@ -8,12 +8,19 @@ wildcard_constraints:
 rule all:
     input:
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39'])
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
         #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'])
-        expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","chr17_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'])
-
+        #expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","chr17_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'])
+        #expand(os.path.join(config['outfold_kalman'],"ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_kalman'],"mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_kalman'],"ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_kalman'],"mu_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size'])
+        #expand(os.path.join(config['outfold_fig'],"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size'])
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
 ##-------------------------------------------------------------------##
@@ -219,6 +226,21 @@ rule bin_coverage:
         python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
         """
 
+rule make_tables:
+    input:
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands'])
+    output:
+        table=os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv")
+    params:
+        bw_folder=config['outfold_binned']
+    shell:
+        """
+        python scripts/make_expression_table.py --bin_size {wildcards.bin_size} \
+                                                --chr {wildcards.chr} \
+                                                --bw_folder {params.bw_folder} \
+                                                --output {output.table}
+        """
+
 
 ##--------------------------------------##
 ##  Get bin phase and amplitude         ##
@@ -363,7 +385,7 @@ rule time_space_fourier_transform:
     threads: 24
     shell:
         """
-        python scripts/time_space_Fourrier_transform.py --bin_size {wildcards.bin_size} \
+        python scripts/time_space_Fourrier_transform_scaled_sigma.py --bin_size {wildcards.bin_size} \
                                                         --bw_folder {params.bw_folder} \
                                                         --overall_phase_amp_table {input.overall_phase_amp} \
                                                         --out_table_amp {output.amplitude} \
@@ -392,6 +414,55 @@ rule plot_time_space_fourier_transform:
                                                         
         """
 
+rule Kalman_smoothing:
+    input:
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
+    output:
+        ll=os.path.join(config['outfold_kalman'],"ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),
+        mu=os.path.join(config['outfold_kalman'],"mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),
+        sigma=os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),
+        r2=os.path.join(config['outfold_kalman'],"r2_{win_size}_{d_win}_{chr}_{bin_size}bp.npy")
+    params:
+        bw_folder=config['outfold_binned']
+    threads:
+        12
+    shell:
+        """
+        python scripts/Kalman_filter_on_for_waves.py --bin_size {wildcards.bin_size} \
+                                                     --bw_folder {params.bw_folder} \
+                                                     --chr {wildcards.chr} \
+                                                     --win_size {wildcards.win_size} \
+                                                     --d_win {wildcards.d_win} \
+                                                     --out_ll {output.ll} \
+                                                     --out_mu {output.mu} \
+                                                     --out_sigma {output.sigma} \
+                                                     --out_r2 {output.r2}
+        """
+        
+
+rule plot_Kalman_smoothing:
+    input:
+        ll=os.path.join(config['outfold_kalman'],"ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),
+        mu=os.path.join(config['outfold_kalman'],"mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),
+        sigma=os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),
+        r2=os.path.join(config['outfold_kalman'],"r2_{win_size}_{d_win}_{chr}_{bin_size}bp.npy")
+    output:
+        fig=os.path.join(config['outfold_fig'],"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf")
+    params:
+        bw_folder=config['outfold_binned']
+    shell:
+        """
+        python scripts/plot_kalman_filter.py --bin_size {wildcards.bin_size} \
+                                             --bw_folder {params.bw_folder} \
+                                             --chr {wildcards.chr} \
+                                             --win_size {wildcards.win_size} \
+                                             --d_win {wildcards.d_win} \
+                                             --in_ll {input.ll} \
+                                             --in_mu {input.mu} \
+                                             --in_sigma {input.sigma} \
+                                             --in_r2 {input.r2} \
+                                             --out_ll {output.fig}
+        """
 
 ##--------------------------------------##
 ##  Track Hub                           ##
