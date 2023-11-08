@@ -7,6 +7,11 @@ if __name__ == '__main__':
     track_hub_url = 'http://upnaesrv1.epfl.ch/PROseq'
 
     #link tracks to track_hub folder
+    link_to_data = '/data/web/sites/PROseq/tracks_bw_unbinned'
+    data_folder = '/bigdata/jbreda/PROseq/results/norm_counts/'
+    if not os.path.exists(link_to_data):
+        os.system(f'ln -s {data_folder} {link_to_data}')
+    
     link_to_data = '/data/web/sites/PROseq/tracks_bw'
     data_folder = '/bigdata/jbreda/PROseq/results/binned_norm_counts/'
     if not os.path.exists(link_to_data):
@@ -60,7 +65,7 @@ if __name__ == '__main__':
                 fout.write("type bigBed 9\n")
                 fout.write("itemRgb on\n")
                 fout.write(f"shortLabel Bin phase {strand} {bin_size}bp\n")
-                fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (red: 0, yellow: pi/3, green: 2pi/3, cyan: pi, blue: 4pi/3, magenta:5pi/3)\n")
+                fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (red: 0h, yellow: 4h, green: 8h, cyan: 12h, blue: 16h, magenta: 20h)\n")
                 fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/bin_phase_amp_{bin_size}bp_{strand}.bb\n")
                 if bin_size == 10000:
                     fout.write("visibility dense\n")
@@ -75,7 +80,7 @@ if __name__ == '__main__':
         fout.write("type bigBed 9\n")
         fout.write("itemRgb on\n")
         fout.write(f"shortLabel Gene phase {bin_size}bp\n")
-        fout.write(f"longLabel Gene phase and amplitude {bin_size}bp mapped in RGB space (red: 0, yellow: pi/3, green: 2pi/3, cyan: pi, blue: 4pi/3, magenta:5pi/3)\n")
+        fout.write(f"longLabel Gene phase and amplitude {bin_size}bp mapped in RGB space (red: 0h, yellow: 4h, green: 8h, cyan: 12h, blue: 16h, magenta: 20h)\n")
         fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp_{bin_size}bp.bb\n")
         if bin_size == 100:
             fout.write("visibility pack\n")
@@ -84,7 +89,7 @@ if __name__ == '__main__':
         fout.write("\n")
     
         # BigWig composite tracks with bin expression
-        for bin_size in [100,1000,10000]:
+        for bin_size in [1,100,1000,10000]:
             for strand in Strands:
                 fout.write(f"track PROseq_{strand}_{bin_size}bp\n")
                 fout.write("compositeTrack on\n")
@@ -105,7 +110,6 @@ if __name__ == '__main__':
                 fout.write("autoScale group\n")
                 fout.write("descriptionUrl PROseq.html\n")
                 fout.write("\n")
-
   
                 for sample in Samples:
                     name = '_'.join(sample.split('_')[:3])
@@ -121,7 +125,10 @@ if __name__ == '__main__':
                     fout.write(f"\tsubGroups t={time}\n")
                     fout.write(f"\tshortLabel {time_label}\n")
                     fout.write(f"\tlongLabel \n")
-                    fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
+                    if bin_size == 1:
+                        fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw_unbinned/{sample}/NormCoverage_3p_{strand}.bw\n")
+                    else:
+                        fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                     fout.write("\ttype bigWig\n")
                     if strand == 'forward':
                         fout.write("\tcolor 0,0,255\n")
