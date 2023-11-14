@@ -213,10 +213,16 @@ if __name__ == '__main__':
         μ_tT = OUT[idx_best][1]
         Σ_tT = OUT[idx_best][2]
 
+        smoothed = H @ μ_tT.T
+        R2 = 1 - np.sum((X - smoothed)**2) / np.sum((X - X.mean(0))**2)
+
         # save results
         out.create_group(gene)
         out[gene].create_dataset('LL',data=LL)
         out[gene].create_dataset('mu',data=μ_tT)
         out[gene].create_dataset('Sigma',data=Σ_tT)
+        out[gene].create_dataset('measurements',data=X)
+        out[gene].create_dataset('positions',data=x)
+        out[gene].create_dataset('smoothed',data=smoothed)
 
     out.close()
