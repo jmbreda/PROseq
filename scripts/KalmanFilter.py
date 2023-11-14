@@ -1,7 +1,7 @@
 import numpy as np
 
 class KalmanFilter(object):
-    def __init__(self, F = None, B = None, H = None, Q = None, R = None, μ_0 = None, Σ_0 = None):
+    def __init__(self, F = None, B = None, H = None, Q = None, R = None, R_a = None, R_b = None, R_c = None, μ_0 = None, Σ_0 = None, Rotating_Q = False):
 
         if(F is None or H is None):
             raise ValueError("Set proper system dynamics.")
@@ -28,40 +28,69 @@ class KalmanFilter(object):
         self.Σ = np.eye(self.n) if Σ_0 is None else Σ_0
 
         # residuals 
-        self.r = None
+        self.residual = None
 
-    def predict(self, t, u = np.array([0])):
-        self.μ_pred = self.F[t] @ self.μ + self.B @ u
-        self.Σ_pred = self.F[t] @ self.Σ @ self.F[t].T + self.Q
+        # If rotating Q, save the angle and radius of the current state
+        self.Rotating_Q = Rotating_Q
+        self.r = np.sqrt( self.μ[0] ** 2 + self.μ[1] ** 2)
+        self.φ = np.arctan2(self.μ[1], self.μ[0])
+        self.σ_r = self.Q[0,0]
+        self.σ_φ = self.Q[1,1]
+
+    def setQ(self,μ):
+        self.r = np.sqrt( μ[0] ** 2 + μ[1] ** 2)
+        self.φ = np.arctan2(μ[1], μ[0])
+        self.Q[0,0] = self.σ_r * np.cos(self.φ) ** 2 + self.σ_φ * np.sin(self.φ) ** 2
+        self.Q[0,1] = (self.σ_r - self.σ_φ) * np.sin(self.φ) * np.cos(self.φ)
+        self.Q[1,0] = (self.σ_r - self.σ_φ) * np.sin(self.φ) * np.cos(self.φ)
+        self.Q[1,1] = self.σ_r * np.sin(self.φ) ** 2 + self.σ_φ * np.cos(self.φ) ** 2
+
+    def predict(self, t=0, u = np.array([0])):
+        if len(self.F.shape) == 3:
+            self.μ_pred = self.F[t] @ self.μ + self.B @ u
+            if self.Rotating_Q:
+                self.setQ(self.μ_pred)
+            self.Σ_pred = self.F[t] @ self.Σ @ self.F[t].T + self.Q
+        else:
+            self.μ_pred = self.F @ self.μ + self.B @ u
+            if self.Rotating_Q:
+                self.setQ(self.μ_pred)
+            self.Σ_pred = self.F @ self.Σ @ self.F.T + self.Q
 
         return self.μ_pred, self.Σ_pred
 
-    def update(self, z):
-        
-        self.r = z - self.H @ self.μ_pred # residual
-        self.S = self.H @ self.Σ_pred @ self.H.T + self.R # residual covariance
-        K = self.Σ_pred @ self.H.T @ np.linalg.inv(self.S) # Kalman gain matrix
-        self.μ = self.μ_pred + K @ self.r # updated (a posteriori) state estimate
-        I = np.eye(self.n) # n-size identity matrix
-        self.Σ = (I - K @ self.H) @ self.Σ_pred # updated (a posteriori) estimate covariance
-        	# (I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
+    def update(self, z, t=None):
+
+        if np.isnan(z).all():
+            self.μ = self.μ_pred
+            self.Σ = self.Σ_pred
+        else:
+            self.residual = z - self.H @ self.μ_pred # residual
+            if t is None:
+                self.S = self.H @ self.Σ_pred @ self.H.T + self.R # residual covariance
+            else:
+                self.S = self.H @ self.Σ_pred @ self.H.T + self.R[t] # residual covariance
+            K = self.Σ_pred @ self.H.T @ np.linalg.inv(self.S) # Kalman gain matrix
+            self.μ = self.μ_pred + K @ self.residual # updated (a posteriori) state estimate
+            I = np.eye(self.n) # n-size identity matrix
+            self.Σ = (I - K @ self.H) @ self.Σ_pred # updated (a posteriori) estimate covariance
         
         return self.μ, self.Σ
-    
+
     def log_likelihood(self):
-        ll = self.r.T @ np.linalg.inv(self.S) @ self.r \
+        ll = self.residual.T @ np.linalg.inv(self.S) @ self.residual \
             + np.log(np.linalg.det(self.S)) \
             + self.m * np.log(2*np.pi)
         return np.sum( -0.5 * ll )
     
-    def fullForward(self, measurements, u = np.array([0])):
+    def fullForward(self, X, u = np.array([0])):
         tables = []
         loglik = 0
         # (re)-initialization
         self.μ, self.Σ = self.μ_0, self.Σ_0
-        for t,z in enumerate(measurements.T):
+        for t,z in enumerate(X.T):
             self.predict(t,u=u)
-            self.update(z)
+            self.update(z,t)
             table=(self.μ_pred, self.Σ_pred, self.μ, self.Σ)
             tables.append(table)
             loglik += self.log_likelihood()
@@ -85,7 +114,11 @@ class KalmanFilter(object):
             μ_t1t = tables[t+1][0]
             Σ_t1t = tables[t+1][1]
             
-            J = Σ_t @ F[t].T @ np.linalg.inv(Σ_t1t)
+            if len(F.shape) == 3:
+                J = Σ_t @ F[t].T @ np.linalg.inv(Σ_t1t)
+            else:
+                J = Σ_t @ F.T @ np.linalg.inv(Σ_t1t)
             μ_tT[t] = μ_t + J @ (μ_tT[t+1] - μ_t1t) 
             Σ_tT[t] = Σ_t + J @ (Σ_tT[t+1] - Σ_t1t) @ J.T
         return (μ_tT, Σ_tT)
+    
