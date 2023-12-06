@@ -25,6 +25,9 @@ read_length: 75
 adapter: TGGAATTCTCGGGTGCCAAGG
 Bin_size:
     #- '100'
+    #- '200'
+    #- '300'
+    #- '500'
     - '1000'
     #- '10000'
 Samples:

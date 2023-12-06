@@ -6,7 +6,6 @@ from multiprocessing import Pool
 from functools import partial
 import h5py
 
-
 import sys
 sys.path.insert(0, 'scripts')
 from KalmanFilter import KalmanFilter
@@ -22,11 +21,10 @@ def parse_args():
     
     return parser.parse_args()
 
-def get_data(bw_folder,bin_size):
+def get_all_tables(bw_folder,bin_size):
     
     # Parameters
     CHR = [f'chr{i+1}' for i in range(19)] + ['chrX','chrY','chrM']
-    bin_size = 1000 # bp
     Strands = ['+', '-']
     T = np.arange(0,48,4)
 
@@ -46,6 +44,38 @@ def get_data(bw_folder,bin_size):
             # replace missing values with 0, add pseudocount, take the log
             df[chr][strand].fillna(0,inplace=True)
             df[chr][strand] = df[chr][strand].apply(lambda x: np.log(x+1/bin_size),axis=1)
+
+    return df
+
+def get_data(coord, bw_folder, bin_size):
+
+    T = np.arange(0,48,4)
+    strand_dict = {'+': 'forward', '-': 'reverse'}
+    [chr,start,end,strand] = coord.split(':')
+
+    # Load bigWigs
+    bw_files = {}
+    for t in T:
+        sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
+        fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
+        bw_files[t] = bw.open(fin)
+
+    # get data
+    df = pd.DataFrame(columns=['start','end'])
+    for t in T:
+        df_t = pd.DataFrame(bw_files[t].intervals(chr,int(start),int(end)+bin_size),columns=['start','end',f"{t}"])
+        df = pd.merge(df,df_t,on=['start','end'],how='outer')
+    df.sort_values('start',inplace=True)
+    df.reset_index(inplace=True,drop=True)
+
+    # replace start and end with position in the middle of the bin, and set as index
+    df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
+    df.drop('end',axis=1,inplace=True)
+    df.columns = ['pos'] + df.columns[1:].tolist()
+    df.set_index('pos',inplace=True)
+
+    df.fillna(0,inplace=True)
+    df = df.apply(lambda x: np.log(x+1/bin_size),axis=1)
 
     return df
 
@@ -93,28 +123,37 @@ def run_kalman_with_k(X,H,R,dx,Rotate,k):
     F[1,1] = np.cos(θ)
 
     # forward noise
+    
+    sigma = dx*1e-5
     if Rotate:
         Q = np.zeros((n,n))
-        Q[0,0] = (10*θ)**2 # σ_r ^2
-        Q[1,1] = (θ/20)**2 # σ_φ ^2
+        Q[0,0] = (10*sigma)**2 # σ_r ^2
+        Q[1,1] = (sigma/20)**2 # σ_φ ^2
     else:
-        Q = np.eye(n)*(θ/10)**2
+        Q = np.eye(n)*(sigma/10)**2
 
     # initial state
     μ_0 = np.zeros(n)
     Σ_0 = np.eye(n)*1
 
+    # initialize Kalman filter class
     kf = KalmanFilter(F=F, H=H, Q=Q, R=R, μ_0=μ_0, Σ_0=Σ_0)
 
-    μ_pred = np.zeros((n,N_mes))
-    Σ_pred = np.zeros((n,n,N_mes))
-    μ_t = np.zeros((n,N_mes))
-    Σ_t = np.zeros((n,n,N_mes))
-    for i,z in enumerate(X.T):
-        μ_pred[:,i], Σ_pred[:,:,i] = kf.predict(i)
-        μ_t[:,i], Σ_t[:,:,i] = kf.update(z,i)
+    if False:
+        μ_pred = np.zeros((n,N_mes))
+        Σ_pred = np.zeros((n,n,N_mes))
+        μ_t = np.zeros((n,N_mes))
+        Σ_t = np.zeros((n,n,N_mes))
+        # Get Kalman filter forward predictions and updates
+        for i,z in enumerate(X.T):
+            μ_pred[:,i], Σ_pred[:,:,i] = kf.predict(i)
+            if np.isnan(z).all():
+                μ_t[:,i] = μ_pred[:,i]
+                Σ_t[:,:,i] = Σ_pred[:,:,i]
+            else:
+                μ_t[:,i], Σ_t[:,:,i] = kf.update(z,i)
 
-    #test Forward-Backward
+    # run Forward saving all predicted and updated stated in forward table. Also return log-likelihood (summed over space and time)
     forward_table, ll = kf.fullForward(X)
 
     μ_tT, Σ_tT = kf.Backward(forward_table,F)
@@ -124,8 +163,6 @@ def run_kalman_with_k(X,H,R,dx,Rotate,k):
     # save the best
     return ll, μ_tT, Σ_tT
 
-
-
 if __name__ == '__main__':
     
     args = parse_args()
@@ -134,7 +171,7 @@ if __name__ == '__main__':
     gtf = get_gtf(args.gtf)
     
     # get data
-    df = get_data(args.bw_folder,args.bin_size)
+    df = get_all_tables(args.bw_folder,args.bin_size)
 
     # get noise model parametrs
     fin = open(args.noise_model_parameters,'r')
@@ -167,6 +204,9 @@ if __name__ == '__main__':
     #for gene in ["Cry1","Cry2"]:
     for gene in gtf.index:
         coord = gtf.loc[gene,['chr','start','end','strand']]
+        
+        #COORD = f"{coord.chr}:{coord.start}:{coord.end}:{coord.strand}"
+        #df = get_data(COORD, args.bw_folder, args.bin_size)
 
         # get small region of the chromosome
         idx_pos = (df[coord.chr][coord.strand].index > coord.start-args.bin_size) & (df[coord.chr][coord.strand].index < coord.end+args.bin_size)
@@ -174,16 +214,16 @@ if __name__ == '__main__':
             continue
 
         measurements = df[coord.chr][coord.strand].loc[idx_pos,:].values.T # time x position
-        positions = df[coord.chr][coord.strand].loc[idx_pos,:].index # positions
+        positions = df[coord.chr][coord.strand].loc[idx_pos,:].index # positions bins middle [bp]
 
-        # fill missing values
+        # fill missing values with nans
         x = np.arange(positions[0],positions[-1]+1,args.bin_size)
         idx = [np.where(x==pos)[0][0] for pos in positions]
         X = np.zeros((measurements.shape[0],x.shape[0]))*np.nan
         X[:,idx] = measurements
         [m,N_mes] = X.shape # number of measurements
 
-        # Use unnormalized expression at each position for R
+        # Use unnormalized expression noise model for R
         R = np.zeros((len(x),m,m))
         # exponential decay of R as a function of z :  R(x) = a * exp(-b * x) + c
         for i in range(len(x)):

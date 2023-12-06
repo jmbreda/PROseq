@@ -61,20 +61,16 @@ class KalmanFilter(object):
 
     def update(self, z, t=None):
 
-        if np.isnan(z).all():
-            self.μ = self.μ_pred
-            self.Σ = self.Σ_pred
+        self.residual = z - self.H @ self.μ_pred # residual
+        if t is None:
+            self.S = self.H @ self.Σ_pred @ self.H.T + self.R # residual covariance
         else:
-            self.residual = z - self.H @ self.μ_pred # residual
-            if t is None:
-                self.S = self.H @ self.Σ_pred @ self.H.T + self.R # residual covariance
-            else:
-                self.S = self.H @ self.Σ_pred @ self.H.T + self.R[t] # residual covariance
-            K = self.Σ_pred @ self.H.T @ np.linalg.inv(self.S) # Kalman gain matrix
-            self.μ = self.μ_pred + K @ self.residual # updated (a posteriori) state estimate
-            I = np.eye(self.n) # n-size identity matrix
-            self.Σ = (I - K @ self.H) @ self.Σ_pred # updated (a posteriori) estimate covariance
-        
+            self.S = self.H @ self.Σ_pred @ self.H.T + self.R[t] # residual covariance
+        K = self.Σ_pred @ self.H.T @ np.linalg.inv(self.S) # Kalman gain matrix
+        self.μ = self.μ_pred + K @ self.residual # updated (a posteriori) state estimate
+        I = np.eye(self.n) # n-size identity matrix
+        self.Σ = (I - K @ self.H) @ self.Σ_pred # updated (a posteriori) estimate covariance
+    
         return self.μ, self.Σ
 
     def log_likelihood(self):
@@ -86,14 +82,27 @@ class KalmanFilter(object):
     def fullForward(self, X, u = np.array([0])):
         tables = []
         loglik = 0
+        n = 0
         # (re)-initialization
         self.μ, self.Σ = self.μ_0, self.Σ_0
         for t,z in enumerate(X.T):
+
             self.predict(t,u=u)
-            self.update(z,t)
+            
+            if np.isnan(z).all():
+                self.μ = self.μ_pred
+                self.Σ = self.Σ_pred
+            else:
+                self.update(z,t)
+                loglik += self.log_likelihood()
+                n += 1
+            
+            # Append pred and update state to table
             table=(self.μ_pred, self.Σ_pred, self.μ, self.Σ)
             tables.append(table)
-            loglik += self.log_likelihood()
+
+        # average log-likelihood over expressed space points
+        loglik /= n
         return (tables, loglik)
     
     @staticmethod

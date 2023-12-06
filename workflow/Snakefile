@@ -22,8 +22,8 @@ rule all:
         #expand(os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_fig'],"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size'])
         #expand( os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] )
-        expand(os.path.join(config['outfold_kalman'],"Gene","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
-        expand(os.path.join(config['outfold_fig'],"kalman","Gene","Likelihood_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
+        expand(os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -421,7 +421,6 @@ rule plot_time_space_fourier_transform:
 ##  Kalman Filter                       ##
 ##--------------------------------------##
 
-
 rule noise_model:
     input:
         in_tables=expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{{bin_size}}bp_{chr}.csv"),chr=config['Chromosomes']['GRCm39'])
@@ -442,11 +441,11 @@ rule Kalman_gene_smoothing:
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
         noise_model_parameters=os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv")
     output:
-        os.path.join(config['outfold_kalman'],"Gene","Kalman_Smoothing_{bin_size}bp.hdf5")
+        os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5")
     params:
         bw_folder=config['outfold_binned']
     threads:
-        24
+        26
     shell:
         """
         python scripts/Kalman_filter_on_genes.py --bin_size {wildcards.bin_size} \
@@ -459,21 +458,19 @@ rule Kalman_gene_smoothing:
 
 rule plot_Kalman_gene_smoothing:
     input:
-        in_hdf5=os.path.join(config['outfold_kalman'],"Gene","Kalman_Smoothing_{bin_size}bp.hdf5"),
+        in_hdf5=os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5"),
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf")
     output:
-        fig_ll=os.path.join(config['outfold_fig'],"kalman","Gene","Likelihood_{bin_size}bp.pdf"),
-        fig_r2=os.path.join(config['outfold_fig'],"kalman","Gene","R2_{bin_size}bp.pdf")
+        fig=os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf")
     params:
         bw_folder=config['outfold_binned']
     shell:
         """
         python scripts/plot_kalman_on_genes.py --bin_size {wildcards.bin_size} \
-                                                      --bw_folder {params.bw_folder} \
-                                                      --gtf {input.gtf} \
-                                                      --in_hdf5 {input.in_hdf5} \
-                                                      --out_ll_plot {output.fig_ll} \
-                                                      --out_r2_plot {output.fig_r2}
+                                               --bw_folder {params.bw_folder} \
+                                               --gtf {input.gtf} \
+                                               --in_hdf5 {input.in_hdf5} \
+                                               --out_fig {output.fig}
         """
 
 rule Kalman_smoothing:

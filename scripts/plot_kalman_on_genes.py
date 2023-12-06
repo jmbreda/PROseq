@@ -4,10 +4,7 @@ import pyBigWig as bw
 import h5py
 import argparse
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-from mpl_toolkits.mplot3d import art3d
-from matplotlib.patches import Ellipse
-import matplotlib.transforms as transforms
+
 
 
 def parse_args():
@@ -16,8 +13,7 @@ def parse_args():
     parser.add_argument('--bw_folder', help='Input data folder', default="results/binned_norm_counts" ,type=str)
     parser.add_argument('--gtf', help='Gene gtf file',default="resources/genome/GRCm39/gene_protein_coding.gtf", type=str)
     parser.add_argument('--in_hdf5', default='results/output.hdf5', type=str)
-    parser.add_argument('--out_ll_plot', default='results/plot.pdf', type=str)
-    parser.add_argument('--out_r2_plot', default='results/r2_plot.pdf', type=str)
+    parser.add_argument('--out_fig', default='results/plot.pdf', type=str)
     
     return parser.parse_args()
 
@@ -25,7 +21,6 @@ def get_all_data(bw_folder,bin_size):
     
     # Parameters
     CHR = [f'chr{i+1}' for i in range(19)] + ['chrX','chrY','chrM']
-    bin_size = 1000 # bp
     Strands = ['+', '-']
     T = np.arange(0,48,4)
 
@@ -78,7 +73,7 @@ def get_data(coord, bw_folder, bin_size):
     df.set_index('pos',inplace=True)
 
     df.fillna(0,inplace=True)
-    df = df[chr][strand].apply(lambda x: np.log(x+1/bin_size),axis=1)
+    df = df.apply(lambda x: np.log(x+1/bin_size),axis=1)
 
     return df
 
@@ -119,85 +114,65 @@ if __name__ == '__main__':
     gtf = get_gtf(args.gtf)
 
     # Load data
-    hf = h5py.File(args.in_hdf5,'r')
+    with h5py.File(args.in_hdf5, 'r') as hf:
+        K = hf['K'][:]
+
+        Genes = list(hf.keys())
+        Genes.remove('K')
+        Genes = np.array(Genes)
+
+        LL = np.zeros((len(K),len(Genes)))
+        R2 = np.zeros(len(Genes))
+        strand = np.zeros(len(Genes),dtype=int)
+        for g, gene in enumerate(Genes):
+            LL[:,g] = hf[gene]['LL'][:]
+            X = hf[gene]['measurements'][:]
+            smoothed = hf[gene]['smoothed'][:]
+            R2[g] =  1 - np.sum( ((X.flatten() - smoothed.flatten())**2) )/np.sum( (X.flatten() - X.mean())**2 )
+            strand[g] = (1 if gtf.at[gene,'strand'] == '+' else -1)
     
-    K = hf['K'][:]
-
-    Genes = list(hf.keys())
-    Genes.remove('K')
-    LL = np.zeros((len(K),len(Genes)))
-
-    for g, gene in enumerate(Genes):
-        LL[:,g] = hf[gene]['LL'][:]
-
     LL_ratio = LL.max(0) - LL[K==0,:] # log-likelihood ratio
 
-    idx_sort = np.argsort(LL_ratio)
+    # get dataframe
+    df = gtf.copy()
+    df = df.loc[Genes,:]
+    df['Length'] = df.end - df.start
+    df['K_max'] = K[np.argmax(LL,axis=0)]
+    df['lambda_max_kb'] = (2*np.pi/df.K_max)*1e-3
+    df['LL_ratio'] = (LL.max(axis=0,keepdims=True) - LL[K==0,:])[0,:]/np.log(2)
+    df['R2'] = R2
+    df['strand'] = strand
 
+    # create figure with 3 subplots sharing the same y-axis
+    fig, axes = plt.subplots(1, 3, sharey=True, gridspec_kw={'width_ratios': [10, 1, 10], 'wspace' : 0}, figsize=(15, 8))
 
-    # plot log-likelihood
+    # plot
+    sign = np.sign(df.K_max)
+    for f, k_sign in enumerate([-1,0,1]):
+        ax = axes[f]
+        idx = (np.sign(df.K_max) == k_sign)
+        if k_sign == -1:
+            x = -df.loc[idx,'K_max']
+            ax.invert_xaxis()
+            ax.set_ylabel(r'$R^2$')
+            ax.set_xscale('log')
+        elif k_sign == 0:
+            x = df.loc[idx,'K_max']/2*np.pi*1e-3
+            ax.set_xlabel('Wavenumber (rad/kb)')
+            ax.set_xticks([0],['0'])
+        elif k_sign == 1:
+            x = df.loc[idx,'K_max']
+            ax.set_xscale('log')
 
-    lik = np.exp(LL - LL.max(0))
+        ax.scatter(x=x,y=df.loc[idx,'R2'],marker='.',s=df.loc[idx,'LL_ratio']+.5,c=df.loc[idx,'strand'],cmap='bwr_r',alpha=.5)
 
-    fig, ax = plt.subplots(figsize=(10,6))
-    h = ax.imshow(lik[:,idx_sort],cmap='jet',origin='lower')
-    ax.set_xlabel('Position [Mp]')
-    ax.set_ylabel(r'$K [rad/bp]$')
-    ax.set_title('Likelihood')
-    fig.colorbar(h, ax=ax)
-    fig.savefig(args.out_ll_plot,bbox_inches='tight')
+        if k_sign==-1:
+            x_ticklabels = ax.get_xticklabels()
+            for i in range(len(x_ticklabels)):
+                new_text = x_ticklabels[i].get_text().replace('10','-10')
+                x_ticklabels[i].set_text(new_text)
+            ax.set_xticklabels(x_ticklabels)
 
-
-
-
-    # get R2
-    T = np.arange(0,48,4) # time points [h]
-    P = 24 # period [h]
-    ω = 2*np.pi/P # angular frequency [rad/h]
-    m = len(T) # number of time points
-    n = 2 # number complex state
-    dx = args.bin_size # distance between positions
-    H = np.zeros((m,2))
-    H[:,0] = np.cos(ω*T)
-    H[:,1] = -np.sin(ω*T)
-    H /= 6
-
-    R2 = np.zeros(len(Genes))
-    for g, gene in enumerate(Genes):
-        coord = gtf.loc[gene,['chr','start','end','strand']]
-
-        coord = [coord.chr,coord.start,coord.end,coord.strand].join(':')
-
-        df = get_data(coord,args.bw_folder,args.bin_size)
-
-        # get small region of the chromosome
-        measurements = df.values.T # time x position
-        positions = df.index # positions
-
-        # fill missing values
-        x = np.arange(positions[0],positions[-1]+1,args.bin_size)
-        idx = [np.where(x==pos)[0][0] for pos in positions]
-        X = np.zeros((measurements.shape[0],x.shape[0]))*np.nan
-        X[:,idx] = measurements
-        [m,N_mes] = X.shape # number of measurements
-
-        # normalize
-        X[:,idx] -= measurements.mean(0)
-        sigma = X[:,idx].std(axis=0)
-        sigma[sigma==0] = 1
-        X[:,idx] /= sigma
-
-        smoothed = H @ hf[gene]['mu'][:].T
-        R2[g] = 1 - np.sum((hf[gene]['measurements'][:] - smoothed)**2) / np.sum((hf[gene]['measurements'][:] - hf[gene]['measurements'][:].mean(0))**2)
-    
-    fig, ax = plt.subplots(figsize=(8,6))
-    ax.hist(R2,bins=100)
-    ax.set_xlabel('R2')
-    ax.set_ylabel('Frequency')
-    ax.set_title('R2 distribution')
-    fig.savefig(args.out_r2_plot,bbox_inches='tight')
-
-
-
-
-    hf.close()
+    # save figure
+    fig.tight_layout()
+    fig.savefig(args.out_fig)

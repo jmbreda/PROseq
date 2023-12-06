@@ -60,6 +60,14 @@
         "mem" : "160G"
     },
 
+    "noise_model" :
+    {
+        "name" : "noise_model",
+        "time" : "01:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    },
+
     "Kalman_smoothing" :
     {
         "name" : "kalman",
@@ -72,7 +80,7 @@
     {
         "name" : "kalman_gene",
         "time" : "24:00:00",
-        "cpus-per-task" : 24,
+        "cpus-per-task" : 26,
         "mem" : "160G"
     }
 }
