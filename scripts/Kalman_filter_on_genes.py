@@ -53,25 +53,21 @@ def get_data(coord, bw_folder, bin_size):
     strand_dict = {'+': 'forward', '-': 'reverse'}
     [chr,start,end,strand] = coord.split(':')
 
-    # Load bigWigs
-    bw_files = {}
+    # get bigwig data to dataframe
+    df = pd.DataFrame(columns=['start','end'])
     for t in T:
         sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
         fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
-        bw_files[t] = bw.open(fin)
-
-    # get data
-    df = pd.DataFrame(columns=['start','end'])
-    for t in T:
-        df_t = pd.DataFrame(bw_files[t].intervals(chr,int(start),int(end)+bin_size),columns=['start','end',f"{t}"])
+        with bw.open(fin,'r') as bw_file:
+            df_t = pd.DataFrame(bw_file.intervals(chr,int(start),int(end)+bin_size),columns=['start','end',f"{t}"])
         df = pd.merge(df,df_t,on=['start','end'],how='outer')
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)
 
     # replace start and end with position in the middle of the bin, and set as index
     df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
+    df.rename(columns={'start':'pos'},inplace=True)
     df.drop('end',axis=1,inplace=True)
-    df.columns = ['pos'] + df.columns[1:].tolist()
     df.set_index('pos',inplace=True)
 
     df.fillna(0,inplace=True)

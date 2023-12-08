@@ -6,4 +6,5 @@ stderr/
 Log.out
 track_hubs/
 notebooks/__pycache__/
+notebooks/fig/
 */__pycache__
