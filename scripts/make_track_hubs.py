@@ -31,7 +31,7 @@ if __name__ == '__main__':
         fout.write(f"trackDb {genome}/trackDb.txt\n")
         fout.write("\n")
 
-    # make ChIP_Atlas.html
+    # make html page
     outfile=f'{track_hub_folder}/PROseq.html'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("PRO-seq data in mouse at times 0h-44h in steps of 4h\n")

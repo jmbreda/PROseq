@@ -102,7 +102,7 @@ class KalmanFilter(object):
             tables.append(table)
 
         # average log-likelihood over expressed space points
-        loglik /= n
+        #loglik /= n
         return (tables, loglik)
     
     @staticmethod
