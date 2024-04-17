@@ -1,0 +1,15 @@
+name: pro-seq
+channels:
+    - conda-forge
+    - bioconda
+    - defaults
+dependencies:
+    - pybigwig
+    - snakemake
+    - h5py
+    - matplotlib
+    - ipython
+    - scipy
+    - numpy
+    - pandas
+    
