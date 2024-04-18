@@ -1,19 +1,5 @@
-import pandas as pd
 
-def get_samples_fastq_files(wildcards):
-    samples = pd.read_csv(f"resources/sample_to_fastq_Run2.txt", sep="\t", header=None, index_col=0, names=['fastq'])
-    fq_files = samples.at[wildcards.sample, 'fastq']
-    fq_files.replace('fastq', 'fastq_trimmed')
-    
-    return fq_files
-
-def get_fastq_list(wildcards):
-    fq_files = get_samples_fastq_files(wildcards)
-    fq_files_list = fq_files.split(' ')[0].split(',') + fq_files.split(' ')[1].split(',')
-    
-    return fq_files_list
-
-configfile: "config/config.yaml"
+configfile: "config/config_run1.yaml"
 
 wildcard_constraints:
     sample="|".join(config['Samples']),
@@ -22,11 +8,8 @@ wildcard_constraints:
 
 rule all:
     input:
-        #expand(os.path.join(config['outfold_fastq_trimmed'],"18035FL-105-01_S1_L005_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
-        #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
-        expand(os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"), sample=config['Samples']),
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
-        expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
+        #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
         #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
@@ -41,7 +24,7 @@ rule all:
         #expand(os.path.join(config['outfold_fig'],"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size'])
         #expand( os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] )
         #expand(os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
-        #expand(os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -89,7 +72,7 @@ rule star_genome_index:
         genome = os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
         gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
     output:
-        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}"))
+        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],"star_index"))
     params:
         overhang = config['read_length']-1
     threads: 24
@@ -108,42 +91,36 @@ rule star_genome_index:
 
 rule cutadapt:
     input:
-        fq1 = os.path.join(config['outfold_fastq'],"{file}_R1_001.fastq.gz"),
-        fq2 = os.path.join(config['outfold_fastq'],"{file}_R2_001.fastq.gz")
+        fq = os.path.join(config['outfold_fastq'],"{sample}.fastq")
     output:
-        fq1_trimmed = os.path.join(config['outfold_fastq_trimmed'],"{file}_R1_001.fastq.gz"),
-        fq2_trimmed = os.path.join(config['outfold_fastq_trimmed'],"{file}_R2_001.fastq.gz"),
+        fq_trimmed = os.path.join(config['outfold_fastq'],"{sample}_trimmed.fastq"),
+        report = os.path.join(config['outfold_fastq'],"{sample}_trimmed_report.txt")
     params:
-        adapter_fwd = config['adapter']['fwd'],
-        adapter_rev = config['adapter']['rev'],
-        report = os.path.join(config['outfold_fastq_trimmed'],"{file}_trimmed_report.txt")
-    threads: 4
-    conda:
-        "cutadapt"
+        adapter = config['adapter']
+    threads: 12
     shell:
         """
-        cutadapt -a {params.adapter_fwd} -A {params.adapter_rev} -o {output.fq1_trimmed} -p {output.fq2_trimmed} -j {threads} {input.fq1} {input.fq2} > {params.report}
+        source activate cutadapt
+        cutadapt -a {params.adapter} -o {output.fq_trimmed} -j 12 {input.fq} > {output.report}
         """
 
-# first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
 rule star_align:
     input:
-        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of fastq files for a given sample
+        fq = os.path.join(config['outfold_fastq'],"{sample}_trimmed.fastq"),
         gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
-        genome_dir = os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}")
+        genome_dir = os.path.join(config['outfold_genome'],config['Species'],"star_index")
     output:
         os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam")
     params:
-        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of fastq files for a given sample
         prefix=os.path.join(config['outfold_star'],"{sample}/"),
         outsamtype = "BAM SortedByCoordinate",
-        limitram = 120000000000
+        limitram = 81000000000
     threads: 12
     shell:
         """
         module load gcc/11.3.0 star
         STAR --runMode alignReads \
-             --readFilesIn {params.fq_cmd_str} \
+             --readFilesIn {input.fq} \
              --readFilesCommand gunzip -c \
              --genomeDir {input.genome_dir} \
              --outFileNamePrefix {params.prefix} \
@@ -552,4 +529,3 @@ rule plot_Kalman_smoothing:
 ##  Track Hub                           ##
 ##--------------------------------------##
 
- 

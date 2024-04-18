@@ -23,16 +23,16 @@
     "star_align" :
     {
         "name" : "star_align",
-        "time" : "02:00:00",
+        "time" : "12:00:00",
         "cpus-per-task" : 12,
-        "mem" : "80G"
+        "mem" : "120G"
     },
 
     "cutadapt" :
     {
         "name" : "cutadapt",
         "time" : "01:00:00",
-        "cpus-per-task" : 12,
+        "cpus-per-task" : 4,
         "mem" : "80G"
     },
 
