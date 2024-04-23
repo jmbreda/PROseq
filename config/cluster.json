@@ -17,7 +17,7 @@
         "name" : "star_genome_index",
         "time" : "02:00:00",
         "cpus-per-task" : 24,
-        "mem" : "100G"
+        "mem" : "200G"
     },
 
     "star_align" :

@@ -24,9 +24,12 @@ rule all:
     input:
         #expand(os.path.join(config['outfold_fastq_trimmed'],"18035FL-105-01_S1_L005_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
         #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
-        expand(os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"), sample=config['Samples']),
+        #directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/"))
+        #os.path.join(config['outfold_star'],"CT00","Aligned.sortedByCoord.out.bam"),
+        os.path.join(config['outfold_star'],"CT00","Log.final.out")
+        #expand(os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"), sample=config['Samples']),
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
-        expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
+        #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
         #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
@@ -87,10 +90,11 @@ rule download_ensembl_genome:
 rule star_genome_index:
     input:
         genome = os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
-        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf")
+        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
     output:
-        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}"))
+        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/"))
     params:
+        limitram = 200000000000,
         overhang = config['read_length']-1
     threads: 24
     shell:
@@ -102,9 +106,10 @@ rule star_genome_index:
              --genomeFastaFiles {input.genome} \
              --sjdbGTFfile {input.gtf} \
              --sjdbOverhang {params.overhang} \
-             --limitGenomeGenerateRAM 81000000000 \
+             --limitGenomeGenerateRAM {params.limitram} \
              --runThreadN {threads}
         """
+
 
 rule cutadapt:
     input:
@@ -113,49 +118,66 @@ rule cutadapt:
     output:
         fq1_trimmed = os.path.join(config['outfold_fastq_trimmed'],"{file}_R1_001.fastq.gz"),
         fq2_trimmed = os.path.join(config['outfold_fastq_trimmed'],"{file}_R2_001.fastq.gz"),
+        report = os.path.join(config['outfold_fastq_trimmed'],"{file}_trimmed_report.txt")
     params:
         adapter_fwd = config['adapter']['fwd'],
         adapter_rev = config['adapter']['rev'],
-        report = os.path.join(config['outfold_fastq_trimmed'],"{file}_trimmed_report.txt")
     threads: 4
     conda:
         "cutadapt"
     shell:
         """
-        cutadapt -a {params.adapter_fwd} -A {params.adapter_rev} -o {output.fq1_trimmed} -p {output.fq2_trimmed} -j {threads} {input.fq1} {input.fq2} > {params.report}
+        cutadapt -a {params.adapter_fwd} -A {params.adapter_rev} -o {output.fq1_trimmed} -p {output.fq2_trimmed} -j {threads} {input.fq1} {input.fq2} > {output.report}
         """
+
+rule plot_trimmed_length:
+    input:
+        report = expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_trimmed_report.txt"), file=config['Fastq_Files'])
+    output:
+        fig = os.path.join(config['outfold_fig'],"trimmed_reads_length_distribution.pdf"),
+        len = os.path.join(config['outfold_fastq_trimmed'],"trimmed_length_mean.txt")
+    threads: 1
+    shell:
+        """
+        python scripts/plot_trimmed_length_distribution.py --reports {input.report} --out_fig {output.fig} --out_len {output.len}
+        """
+
 
 # first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
 rule star_align:
     input:
         fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of fastq files for a given sample
         gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
-        genome_dir = os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}")
+        genome_dir = os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/")
     output:
-        os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam")
+        os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"),
+        os.path.join(config['outfold_star'],"{sample}","Log.final.out")
     params:
         fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of fastq files for a given sample
         prefix=os.path.join(config['outfold_star'],"{sample}/"),
         outsamtype = "BAM SortedByCoordinate",
-        limitram = 120000000000
+        limitram = 120000000000,
+        minlen = 16
     threads: 12
     shell:
         """
         module load gcc/11.3.0 star
         STAR --runMode alignReads \
-             --readFilesIn {params.fq_cmd_str} \
-             --readFilesCommand gunzip -c \
              --genomeDir {input.genome_dir} \
+             --readFilesIn {params.fq_cmd_str} \
+             --runThreadN {threads} \
+             --readFilesCommand gunzip -c \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype {params.outsamtype} \
              --limitBAMsortRAM {params.limitram} \
              --sjdbGTFfile {input.gtf} \
-             --runThreadN {threads}
+             --outFilterMatchNminOverLread 0 \
+             --outFilterMatchNmin {params.minlen}
         """
 
-##--------------------------------------##
-##  BAM files indexing                  ##
-##--------------------------------------##
+##----------------------##
+##  BAM files indexing  ##
+##----------------------##
 
 rule sam_index:
     input:

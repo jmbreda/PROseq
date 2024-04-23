@@ -1,6 +1,6 @@
 #!/bin/bash
 snakemake -s workflow/Snakefile \
-          -j 200 \
+          -j 100 \
           --use-conda \
           --cluster-config config/cluster.json \
           --cluster "sbatch --job-name {cluster.name} \
@@ -11,4 +11,4 @@ snakemake -s workflow/Snakefile \
                             --ntasks {cluster.ntasks} \
                             --cpus-per-task {cluster.cpus-per-task} \
                             --output {cluster.stdout} \
-                            --error {cluster.stderr}" --rerun-incomplete
+                            --error {cluster.stderr}"
