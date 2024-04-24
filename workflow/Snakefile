@@ -2,8 +2,7 @@ import pandas as pd
 
 def get_samples_fastq_files(wildcards):
     samples = pd.read_csv(f"resources/sample_to_fastq_Run2.txt", sep="\t", header=None, index_col=0, names=['fastq'])
-    fq_files = samples.at[wildcards.sample, 'fastq']
-    fq_files.replace('fastq', 'fastq_trimmed')
+    fq_files = samples.at[wildcards.sample, 'fastq'].replace('fastq', 'fastq_trimmed')
     
     return fq_files
 
@@ -99,7 +98,9 @@ rule star_genome_index:
     threads: 24
     shell:
         """
-        module load gcc/11.3.0 star
+        if [ $(hostname -s) == "jed" ]; then
+            module load gcc/11.3.0 star
+        fi
         mkdir -p {output.genome_dir}
         STAR --runMode genomeGenerate \
              --genomeDir {output.genome_dir} \
@@ -161,7 +162,9 @@ rule star_align:
     threads: 12
     shell:
         """
-        module load gcc/11.3.0 star
+        if [ $(hostname -s) == "jed" ]; then
+            module load gcc/11.3.0 star
+        fi
         STAR --runMode alignReads \
              --genomeDir {input.genome_dir} \
              --readFilesIn {params.fq_cmd_str} \

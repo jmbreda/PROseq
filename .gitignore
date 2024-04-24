@@ -7,4 +7,5 @@ Log.out
 track_hubs/
 notebooks/__pycache__/
 notebooks/fig/
+tmp/
 */__pycache__
