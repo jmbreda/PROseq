@@ -2,7 +2,7 @@ import pandas as pd
 
 def get_samples_fastq_files(wildcards):
     samples = pd.read_csv(f"resources/sample_to_fastq_Run2.txt", sep="\t", header=None, index_col=0, names=['fastq'])
-    fq_files = samples.at[wildcards.sample, 'fastq'].replace('fastq', 'fastq_trimmed')
+    fq_files = samples.at[wildcards.sample, 'fastq'].replace('/fastq/', '/fastq_trimmed/')
     
     return fq_files
 
@@ -23,12 +23,12 @@ rule all:
     input:
         #expand(os.path.join(config['outfold_fastq_trimmed'],"18035FL-105-01_S1_L005_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
         #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_{r}_001.fastq.gz"), file=config['Fastq_Files'], r=config['Reads']),
-        #directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/"))
+        #directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/")),
         #os.path.join(config['outfold_star'],"CT00","Aligned.sortedByCoord.out.bam"),
-        os.path.join(config['outfold_star'],"CT00","Log.final.out")
-        #expand(os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"), sample=config['Samples']),
+        #os.path.join(config['outfold_star'],"CT00","Log.final.out")
+        #expand(os.path.join(config['outfold_star'],"{sample}","Log.final.out"), sample=config['Samples'])
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
-        #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
+        expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
         #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
@@ -86,32 +86,6 @@ rule download_ensembl_genome:
 ##  Generate STAR genome index and align  ##
 ##----------------------------------------##
 
-rule star_genome_index:
-    input:
-        genome = os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
-        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
-    output:
-        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/"))
-    params:
-        limitram = 200000000000,
-        overhang = config['read_length']-1
-    threads: 24
-    shell:
-        """
-        if [ $(hostname -s) == "jed" ]; then
-            module load gcc/11.3.0 star
-        fi
-        mkdir -p {output.genome_dir}
-        STAR --runMode genomeGenerate \
-             --genomeDir {output.genome_dir} \
-             --genomeFastaFiles {input.genome} \
-             --sjdbGTFfile {input.gtf} \
-             --sjdbOverhang {params.overhang} \
-             --limitGenomeGenerateRAM {params.limitram} \
-             --runThreadN {threads}
-        """
-
-
 rule cutadapt:
     input:
         fq1 = os.path.join(config['outfold_fastq'],"{file}_R1_001.fastq.gz"),
@@ -123,12 +97,13 @@ rule cutadapt:
     params:
         adapter_fwd = config['adapter']['fwd'],
         adapter_rev = config['adapter']['rev'],
+        min_len = 16
     threads: 4
     conda:
         "cutadapt"
     shell:
         """
-        cutadapt -a {params.adapter_fwd} -A {params.adapter_rev} -o {output.fq1_trimmed} -p {output.fq2_trimmed} -j {threads} {input.fq1} {input.fq2} > {output.report}
+        cutadapt -a {params.adapter_fwd} -A {params.adapter_rev} -o {output.fq1_trimmed} -p {output.fq2_trimmed} -j {threads} -m {params.min_len} {input.fq1} {input.fq2} > {output.report}
         """
 
 rule plot_trimmed_length:
@@ -143,18 +118,42 @@ rule plot_trimmed_length:
         python scripts/plot_trimmed_length_distribution.py --reports {input.report} --out_fig {output.fig} --out_len {output.len}
         """
 
+rule star_genome_index:
+    input:
+        genome = os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
+        gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
+    output:
+        genome_dir = directory(os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/"))
+    params:
+        limitram = 200000000000,
+        overhang = config['read_length']-1
+    threads: 24
+    shell:
+        """
+        if [ ! $(hostname -s) == "upnaesrv1" ]; then
+            module load gcc/11.3.0 star
+        fi
+        mkdir -p {output.genome_dir}
+        STAR --runMode genomeGenerate \
+             --genomeDir {output.genome_dir} \
+             --genomeFastaFiles {input.genome} \
+             --sjdbGTFfile {input.gtf} \
+             --sjdbOverhang {params.overhang} \
+             --limitGenomeGenerateRAM {params.limitram} \
+             --runThreadN {threads}
+        """
 
 # first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
 rule star_align:
     input:
-        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of fastq files for a given sample
+        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of trimmed fastq files for a given sample (for dependence only)
         gtf = os.path.join(config['outfold_genome'],config['Species'],"gene_annotation.gtf"),
         genome_dir = os.path.join(config['outfold_genome'],config['Species'],f"star_index_{config['read_length']-1}/")
     output:
         os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam"),
         os.path.join(config['outfold_star'],"{sample}","Log.final.out")
     params:
-        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of fastq files for a given sample
+        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of trimmed fastq files for a given sample
         prefix=os.path.join(config['outfold_star'],"{sample}/"),
         outsamtype = "BAM SortedByCoordinate",
         limitram = 120000000000,
@@ -162,7 +161,7 @@ rule star_align:
     threads: 12
     shell:
         """
-        if [ $(hostname -s) == "jed" ]; then
+        if [ ! $(hostname -s) == "upnaesrv1" ]; then
             module load gcc/11.3.0 star
         fi
         STAR --runMode alignReads \

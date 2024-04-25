@@ -24,7 +24,7 @@ outfold_kalman:             "results/kalman"
 
 Species: GRCm39
 Bin_size:
-    #- '100'
+    - '100'
     #- '200'
     #- '300'
     #- '500'
