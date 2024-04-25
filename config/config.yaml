@@ -31,18 +31,6 @@ Bin_size:
     #- '10000'
 
 Samples:
-    - PRO_SEQ_CT00
-    - PRO_SEQ_CT04
-    - PRO_SEQ_CT08
-    - PRO_SEQ_CT12
-    - PRO_SEQ_CT16
-    - PRO_SEQ_CT20
-    - PRO_SEQ_CT24
-    - PRO_SEQ_CT28
-    - PRO_SEQ_CT32
-    - PRO_SEQ_CT36
-    - PRO_SEQ_CT40
-    - PRO_SEQ_CT44
     - CT00
     - CT04
     - CT08

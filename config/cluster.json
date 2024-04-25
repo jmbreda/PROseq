@@ -12,6 +12,46 @@
         "stderr" : "stderr/slurm-%x-%j"
     },
 
+    "bwa_index" :
+    {
+        "name" : "bwa_index",
+        "time" : "06:00:00",
+        "cpus-per-task" : 1,
+        "mem" : "6G"
+    },
+
+    "bwa_aln_se" :
+    {
+        "name" : "bwa_aln_se",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "10G"
+    },
+
+    "bwa_aln_pe" :
+    {
+        "name" : "bwa_aln_pe",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "10G"
+    },
+
+    "bwa_sampe" :
+    {
+        "name" : "bwa_sampe",
+        "time" : "12:00:00",
+        "cpus-per-task" : 1,
+        "mem" : "10G"
+    },
+
+    "bwa_samse" :
+    {
+        "name" : "bwa_samse",
+        "time" : "12:00:00",
+        "cpus-per-task" : 1,
+        "mem" : "10G"
+    },
+
     "star_genome_index" :
     {
         "name" : "star_genome_index",

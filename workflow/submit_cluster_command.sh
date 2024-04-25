@@ -11,4 +11,4 @@ snakemake -s workflow/Snakefile \
                             --ntasks {cluster.ntasks} \
                             --cpus-per-task {cluster.cpus-per-task} \
                             --output {cluster.stdout} \
-                            --error {cluster.stderr}" -n --touch
+                            --error {cluster.stderr}"

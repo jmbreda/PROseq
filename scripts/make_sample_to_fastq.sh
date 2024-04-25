@@ -10,7 +10,6 @@ if [ -f $outfile ]
 then
     rm $outfile
 fi
-
 for i in $(seq 0 $((N-1)))
 do
     printf "%s\t" "${Time[$i]}" >> $outfile
@@ -58,4 +57,30 @@ do
             printf "\n" >> $outfile
         fi
     done
+done
+
+
+
+
+outfile="resources/filenames_to_sample.txt"
+if [ -f $outfile ]
+then
+    rm $outfile
+fi
+for i in $(seq 0 $((N-1)))
+do
+    printf "%s\t" "${Time[$i]}" >> $outfile
+
+    mapfile -t Files < <( find resources/fastq/*_S$((i + 1))_*R1_001.fastq.gz | cut -f3 -d'/' | sed 's/_R1_001.fastq.gz//g' )
+    n=${#Files[@]}
+    echo $n
+    for j in $(seq 0 $((n-1)))
+    do
+        printf "%s" "${Files[$j]}" >> $outfile
+        if [ $j -lt $((n-1)) ]
+        then
+            printf "," >> $outfile
+        fi
+    done
+    printf "\n" >> $outfile
 done
