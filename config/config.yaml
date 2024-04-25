@@ -1,5 +1,3 @@
-
-
 URLs:
     GRCh38:
         gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v43.basic.annotation.gtf.gz"
@@ -13,6 +11,7 @@ URLs:
 outfold_genome:             "resources/genome"
 outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
+outfold_bwa:                "results/bwa"
 outfold_star:               "results/star"
 outfold_counts:             "results/counts"
 outfold_norm:               "results/norm_counts"
@@ -32,6 +31,18 @@ Bin_size:
     #- '10000'
 
 Samples:
+    - PRO_SEQ_CT00
+    - PRO_SEQ_CT04
+    - PRO_SEQ_CT08
+    - PRO_SEQ_CT12
+    - PRO_SEQ_CT16
+    - PRO_SEQ_CT20
+    - PRO_SEQ_CT24
+    - PRO_SEQ_CT28
+    - PRO_SEQ_CT32
+    - PRO_SEQ_CT36
+    - PRO_SEQ_CT40
+    - PRO_SEQ_CT44
     - CT00
     - CT04
     - CT08
@@ -46,50 +57,68 @@ Samples:
     - CT44
 
 Fastq_Files:
-    - 18035FL-105-01_S1_L005
-    - 18035FL-105-01_S1_L006
-    - 18035FL-105-01V1-01_S1_L008
-    - 18035FL-105-02_S2_L005
-    - 18035FL-105-02_S2_L006
-    - 18035FL-105-01V1-02_S2_L008
-    - 18035FL-105-03_S3_L005
-    - 18035FL-105-03_S3_L006
-    - 18035FL-105-01V1-03_S3_L008
-    - 18035FL-105-04_S4_L005
-    - 18035FL-105-04_S4_L006
-    - 18035FL-105-01V1-04_S4_L008
-    - 18035FL-105-05_S5_L005
-    - 18035FL-105-05_S5_L006
-    - 18035FL-105-01V1-05_S5_L008
-    - 18035FL-105-06_S6_L005
-    - 18035FL-105-06_S6_L006
-    - 18035FL-105-01V1-06_S6_L008
-    - 18035FL-105-07_S7_L005
-    - 18035FL-105-07_S7_L006
-    - 18035FL-105-01V1-07_S7_L008
-    - 18035FL-105-08_S8_L005
-    - 18035FL-105-08_S8_L006
-    - 18035FL-105-01V1-08_S8_L008
-    - 18035FL-105-09_S9_L005
-    - 18035FL-105-09_S9_L006
-    - 18035FL-105-01V1-09_S9_L008
-    - 18035FL-105-10_S10_L005
-    - 18035FL-105-10_S10_L006
-    - 18035FL-105-01V1-10_S10_L008
-    - 18035FL-105-11_S11_L005
-    - 18035FL-105-11_S11_L006
-    - 18035FL-105-01V1-11_S11_L008
-    - 18035FL-105-12_S12_L005
-    - 18035FL-105-12_S12_L006
-    - 18035FL-105-01V1-12_S12_L008
+    SE:
+        - PRO_SEQ_CT00_S1
+        - PRO_SEQ_CT04_S2
+        - PRO_SEQ_CT08_S3
+        - PRO_SEQ_CT12_S4
+        - PRO_SEQ_CT16_S5
+        - PRO_SEQ_CT20_S6
+        - PRO_SEQ_CT24_S7
+        - PRO_SEQ_CT28_S8
+        - PRO_SEQ_CT32_S9
+        - PRO_SEQ_CT36_S10
+        - PRO_SEQ_CT40_S11
+        - PRO_SEQ_CT44_S12
+    PE:
+        - 18035FL-105-01_S1_L005
+        - 18035FL-105-01_S1_L006
+        - 18035FL-105-01V1-01_S1_L008
+        - 18035FL-105-02_S2_L005
+        - 18035FL-105-02_S2_L006
+        - 18035FL-105-01V1-02_S2_L008
+        - 18035FL-105-03_S3_L005
+        - 18035FL-105-03_S3_L006
+        - 18035FL-105-01V1-03_S3_L008
+        - 18035FL-105-04_S4_L005
+        - 18035FL-105-04_S4_L006
+        - 18035FL-105-01V1-04_S4_L008
+        - 18035FL-105-05_S5_L005
+        - 18035FL-105-05_S5_L006
+        - 18035FL-105-01V1-05_S5_L008
+        - 18035FL-105-06_S6_L005
+        - 18035FL-105-06_S6_L006
+        - 18035FL-105-01V1-06_S6_L008
+        - 18035FL-105-07_S7_L005
+        - 18035FL-105-07_S7_L006
+        - 18035FL-105-01V1-07_S7_L008
+        - 18035FL-105-08_S8_L005
+        - 18035FL-105-08_S8_L006
+        - 18035FL-105-01V1-08_S8_L008
+        - 18035FL-105-09_S9_L005
+        - 18035FL-105-09_S9_L006
+        - 18035FL-105-01V1-09_S9_L008
+        - 18035FL-105-10_S10_L005
+        - 18035FL-105-10_S10_L006
+        - 18035FL-105-01V1-10_S10_L008
+        - 18035FL-105-11_S11_L005
+        - 18035FL-105-11_S11_L006
+        - 18035FL-105-01V1-11_S11_L008
+        - 18035FL-105-12_S12_L005
+        - 18035FL-105-12_S12_L006
+        - 18035FL-105-01V1-12_S12_L008
 
 Reads:
     - R1
     - R2
 
-read_length: 151
+read_length:
+    SE:
+        75
+    PE:
+        151
 adapter:
-    fwd: TGGAATTCTCGGGTGCCAAGG 
+    fwd: TGGAATTCTCGGGTGCCAAGG
     rev: GATCGTCGGACTGTAGAACTCTGAAC
 
 # From:
