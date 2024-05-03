@@ -15,7 +15,7 @@ def get_fastq_list(wildcards):
 def get_bam_files_per_sample(wildcards):
     samples = pd.read_csv(f"resources/filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['fastq'])
     file_list = samples.at[wildcards.sample, 'fastq'].split(',')
-    file_list = [f'{f}.bam' for f in file_list]
+    file_list = [f'results/bwa/{f}.bam' for f in file_list]
     
     return file_list
 
@@ -39,12 +39,12 @@ rule all:
         #os.path.join(config['outfold_genome'],config['Species'],"genome.fa.bwt")
         #expand(os.path.join(config['outfold_bwa'],"{file_se}.sam"), file_se=config['Fastq_Files']['SE']),
         #expand(os.path.join(config['outfold_bwa'],"{file_pe}.sam"), file_pe=config['Fastq_Files']['PE']),
-        os.path.join(config['outfold_bwa'],"18035FL-105-01_S1_L005.bam")
+        #expand( os.path.join(config['outfold_bwa'],"{file}.bam"), file=['18035FL-105-01V1-01_S1_L008','PRO_SEQ_CT00_S1','18035FL-105-01_S1_L005','18035FL-105-01_S1_L006'] )
         #expand(os.path.join(config['outfold_bwa'],"{file}.bam"), file=config['Fastq_Files']['PE']),
         #expand(os.path.join(config['outfold_bwa'],"{file}.bam"), file=config['Fastq_Files']['SE']),
-        os.path.join(config['outfold_bwa'],"CT00.bam")
+        #os.path.join(config['outfold_bwa'],"CT00.bam")
         #expand(os.path.join(config['outfold_bwa'],"{sample}.bam"), sample=config['Samples']),
-        #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
@@ -120,18 +120,6 @@ rule cutadapt_se:
         cutadapt -a {params.adapter} -o {output.fq_trimmed} -j {threads} -m {params.min_len} {input.fq} > {output.report}
         """
 
-rule plot_trimmed_length_se:
-    input:
-        report = expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_trimmed_report.txt"), file=config['Fastq_Files']['SE'])
-    output:
-        fig = os.path.join(config['outfold_fig'],"trimmed_reads_length_distribution_se.pdf"),
-        len = os.path.join(config['outfold_fastq_trimmed'],"trimmed_length_mean_se.txt")
-    threads: 1
-    shell:
-        """
-        python scripts/plot_trimmed_length_distribution.py --reports {input.report} --out_fig {output.fig} --out_len {output.len}
-        """
-
 rule cutadapt_pe:
     input:
         fq1 = os.path.join(config['outfold_fastq'],"{file_pe}_R1_001.fastq.gz"),
@@ -166,6 +154,10 @@ rule bwa_index:
         bwa index {input.genome}
         """
 
+##------------------##
+##  BWA single-end  ##
+##------------------##
+
 rule bwa_aln_se:
     input:
         genome=os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
@@ -175,7 +167,7 @@ rule bwa_aln_se:
     threads: 12
     shell:
         """
-        bwa aln -I -t {threads} -f {output.sai} {input.genome} {input.fq}
+        bwa aln -t {threads} -f {output.sai} {input.genome} {input.fq}
         """
 
 rule bwa_samse:
@@ -191,6 +183,29 @@ rule bwa_samse:
         bwa samse -f {output.sam} {input.genome} {input.sai} {input.fq}
         """
 
+rule mapped_uniq_MAPQ_sorted_se:
+    input:
+        sam=os.path.join(config['outfold_bwa'],"{file_se}.sam")
+    output:
+        bam=os.path.join(config['outfold_bwa'],"{file_se}.bam")
+    params:
+        MAPQ_min=config['MAPQ_min'],
+        mem='2G'
+    threads: 12
+    shell:
+        """
+        ml gcc/11.3.0 samtools
+        samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
+            awk '$1 ~ /^@/ || $2 == "16" || $2 == "0"' |\
+            grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
+            samtools sort -@ {threads} -m {params.mem} |\
+            samtools view -@ {threads} -bh > {output.bam}
+        """
+
+##------------------##
+##  BWA paired-end  ##
+##------------------##
+
 rule bwa_aln_pe:
     input:
         genome=os.path.join(config['outfold_genome'],config['Species'],"genome.fa"),
@@ -202,8 +217,8 @@ rule bwa_aln_pe:
     threads: 12
     shell:
         """
-        bwa aln -I -t {threads} -f {output.sai1} {input.genome} {input.fq1}
-        bwa aln -I -t {threads} -f {output.sai2} {input.genome} {input.fq2}
+        bwa aln -t {threads} -f {output.sai1} {input.genome} {input.fq1}
+        bwa aln -t {threads} -f {output.sai2} {input.genome} {input.fq2}
         """
 
 rule bwa_sampe:
@@ -221,36 +236,48 @@ rule bwa_sampe:
         bwa sampe -f {output.sam} {input.genome} {input.sai1} {input.sai2} {input.fq1} {input.fq2}
         """
 
-rule sam_to_bam:
+rule mapped_uniq_MAPQ_close_mates_sorted_pe:
     input:
-        sam=os.path.join(config['outfold_bwa'],"{file}.sam")
+        sam=os.path.join(config['outfold_bwa'],"{file_pe}.sam")
     output:
-        bam=os.path.join(config['outfold_bwa'],"{file}.bam")
+        bam=os.path.join(config['outfold_bwa'],"{file_pe}.bam")
+    params:
+        MAPQ_min=config['MAPQ_min'],
+        mem='2G',
+        mate_dist_max=config['mate_dist_max']
+    threads: 12
     shell:
         """
-        samtools view -bS {input.sam} > {output.bam}
+        ml gcc/11.3.0 samtools
+        samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
+            awk '$1 ~ /^@/ || $2 == "81" || $2 == "97"' |\
+            grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
+            awk '$1 ~ /^@/ || $7 == "=" && $9 > -{params.mate_dist_max} && $9 < {params.mate_dist_max}' |\
+            samtools sort -@ {threads} -m {params.mem} |\
+            samtools view -@ {threads} -bh > {output.bam}
         """
+
+##-----------------------------##
+## Merge PE & SE files,  index ##
+##-----------------------------##
 
 rule merge_bam:
     input:
         files_per_sample = get_bam_files_per_sample
     output:
         bam=os.path.join(config['outfold_bwa'],"{sample}.bam")
+    threads: 12
     shell:
         """
         ml gcc/11.3.0 samtools
-        samtools merge -o {outout.bam} {input.files_per_sample}
+        samtools merge -@ {threads} -f {output.bam} {input.files_per_sample}
         """
-
-##----------------------##
-##  BAM files indexing  ##
-##----------------------##
 
 rule sam_index:
     input:
-        bam=os.path.join(config['outfold_star'],"{sample}/Aligned.sortedByCoord.out.bam")
+        bam=os.path.join(config['outfold_bwa'],"{sample}.bam")
     output:
-        bam_index=os.path.join(config['outfold_star'],"{sample}/Aligned.sortedByCoord.out.bam.bai")
+        bam_index=os.path.join(config['outfold_bwa'],"{sample}.bam.bai")
     shell:
         """
         ml gcc/11.3.0 samtools
@@ -289,22 +316,24 @@ rule chrom_size_bin_size:
 # for PRO-seq data, we only need the 3'-end of the reads. However the protocol repots reverse complement of the reads. So I take the 5'-end and flip the strand.
 rule coverage_bedgraph:
     input:
-        bam=os.path.join(config['outfold_star'],"{sample}","Aligned.sortedByCoord.out.bam")
+        bam=os.path.join(config['outfold_bwa'],"{sample}.bam")
     output:
-        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph")
+        bg=os.path.join(config['outfold_coverage'],"{sample}","coverage_3p_{strand}.bedgraph")
     params:
-        strand = lambda wildcards: '-' if wildcards.strand == "forward" else '+' if wildcards.strand == "reverse" else ''
+        strand = lambda wildcards: '-' if wildcards.strand == "forward" else '+' if wildcards.strand == "reverse" else '',
+        flag_pe = lambda wildcards: '81' if wildcards.strand == "forward" else '97' if wildcards.strand == "reverse" else '',
+        flag_se = lambda wildcards: '16' if wildcards.strand == "forward" else '0' if wildcards.strand == "reverse" else ''
     shell:
         """
         ml gcc/11.3.0 samtools bedtools2
-        samtools view -b {input.bam} | bedtools genomecov -ibam stdin -bg -strand {params.strand} -5 | grep "^\<chr" > {output.bg}
+        samtools view -h {input.bam} | awk '$1 ~ /^@/ || $2 == "{params.flag_pe}" || $2 == "{params.flag_se}"' | samtools view -b | bedtools genomecov -ibam stdin -bg -strand {params.strand} -5 | grep "^\<chr" > {output.bg}
         """
 
 rule get_total_count:
     input:
-        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph")
+        bg=os.path.join(config['outfold_coverage'],"{sample}","coverage_3p_{strand}.bedgraph")
     output:
-        counts=os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt")
+        counts=os.path.join(config['outfold_coverage'],"{sample}","total_counts_{strand}.txt")
     shell:
         """
         count=$(awk '{{sum+=$4}} END {{print sum}}' {input.bg})
@@ -313,9 +342,9 @@ rule get_total_count:
 
 rule normalize_sort_bedgraph:
     input:
-        bg=os.path.join(config['outfold_counts'],"{sample}","coverage_3p_{strand}.bedgraph"),
-        total_count=os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt"),
-        total_counts=expand(os.path.join(config['outfold_counts'],"{sample}","total_counts_{strand}.txt"),sample=config['Samples'], strand=config['Strands'])
+        bg=os.path.join(config['outfold_coverage'],"{sample}","coverage_3p_{strand}.bedgraph"),
+        total_count=os.path.join(config['outfold_coverage'],"{sample}","total_counts_{strand}.txt"),
+        total_counts=expand(os.path.join(config['outfold_coverage'],"{sample}","total_counts_{strand}.txt"),sample=config['Samples'], strand=config['Strands'])
     output:
         norm_bg=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bedgraph")
     shell:
@@ -341,7 +370,7 @@ rule bin_coverage:
         bin_bw=os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw")
     shell:
         """
-        python scripts/bin_bigwig.py  -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
+        python scripts/bin_bigwig.py -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}
         """
 
 rule make_tables:

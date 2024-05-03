@@ -12,10 +12,11 @@ outfold_genome:             "resources/genome"
 outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
 outfold_bwa:                "results/bwa"
+outfold_coverage:           "results/coverage"
 outfold_star:               "results/star"
 outfold_counts:             "results/counts"
-outfold_norm:               "results/norm_counts"
-outfold_binned:             "results/binned_norm_counts"
+outfold_norm:               "results/norm_coverage"
+outfold_binned:             "results/binned_norm_coverage"
 outfold_fig:                "results/fig"
 outfold_phase_amp:          "results/phase_amp"
 outfold_space_time_fourier: "results/space_time_fourier"
@@ -108,11 +109,13 @@ read_length:
 adapter:
     fwd: TGGAATTCTCGGGTGCCAAGG
     rev: GATCGTCGGACTGTAGAACTCTGAAC
+# Adapters from: https://support-docs.illumina.com/SHARE/AdapterSequences/Content/SHARE/AdapterSeq/TruSeq/TruSeqSmallRNA.htm
+# Reverse complement of the Illumina TruSeq Small RNA 5' adapter: 'GUUCAGAGUUCUACAGUCCGACGAUC'.translate(''.maketrans('ACGU','TGCA'))[::-1]
 
-# From:
-# https://support-docs.illumina.com/SHARE/AdapterSequences/Content/SHARE/AdapterSeq/TruSeq/TruSeqSmallRNA.htm# reverse complement of the Illumina TruSeq Small RNA 5' adapter:
-# reverse complement of the Illumina TruSeq Small RNA 5' adapter:
-# 'GUUCAGAGUUCUACAGUCCGACGAUC'.translate(''.maketrans('ACGU','TGCA'))[::-1]
+MAPQ_min: 10 # Minimum MAPQ score for reads to be considered (Phred-scaled)
+
+mate_dist_max: 1000 # Maximum distance between mates for paired-end reads
+
 
 Strands:
     - forward

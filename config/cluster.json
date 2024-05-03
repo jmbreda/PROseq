@@ -27,6 +27,22 @@
         "cpus-per-task" : 12,
         "mem" : "10G"
     },
+    
+    "bwa_sampe" :
+    {
+        "name" : "bwa_sampe",
+        "time" : "48:00:00",
+        "cpus-per-task" : 1,
+        "mem" : "10G"
+    },
+
+    "mapped_uniq_MAPQ_se" :
+    {
+        "name" : "mapped_uniq_MAPQ_se",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "24G"
+    },
 
     "bwa_aln_pe" :
     {
@@ -36,20 +52,28 @@
         "mem" : "10G"
     },
 
-    "bwa_sampe" :
+    "bwa_samse" :
     {
-        "name" : "bwa_sampe",
-        "time" : "12:00:00",
+        "name" : "bwa_samse",
+        "time" : "48:00:00",
         "cpus-per-task" : 1,
         "mem" : "10G"
     },
 
-    "bwa_samse" :
+    "mapped_uniq_MAPQ_close_mates_sorted_pe" :
     {
-        "name" : "bwa_samse",
+        "name" : "mapped_uniq_MAPQ_close_mates_sorted_pe",
         "time" : "12:00:00",
-        "cpus-per-task" : 1,
-        "mem" : "10G"
+        "cpus-per-task" : 12,
+        "mem" : "24G"
+    },
+
+    "merge_bam" :
+    {
+        "name" : "merge_bam",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "20G"
     },
 
     "star_genome_index" :

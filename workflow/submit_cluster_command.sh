@@ -1,6 +1,6 @@
 #!/bin/bash
 snakemake -s workflow/Snakefile \
-          -j 100 \
+          -j 500 \
           --use-conda \
           --cluster-config config/cluster.json \
           --cluster "sbatch --job-name {cluster.name} \
@@ -12,3 +12,7 @@ snakemake -s workflow/Snakefile \
                             --cpus-per-task {cluster.cpus-per-task} \
                             --output {cluster.stdout} \
                             --error {cluster.stderr}"
+                            # --rulegraph | dot -Tpdf > workflow/rulegraph.pdf
+                            # --dag | dot -Tpdf > workflow/dag.pdf
+                            
+                            
