@@ -5,6 +5,9 @@ import pyBigWig as bw
 import os
 import argparse
 from scipy.stats import beta
+import sys
+sys.path.insert(0, '/home/jbreda/PROseq/scripts/Phase_to_LabColor')
+from phase_to_labcolor import phase_to_labcolor as p2lc
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
@@ -79,7 +82,10 @@ if __name__ == '__main__':
     v = np.zeros(df.shape[0])
     v[df['R2']>.25] = 1
 
-    rgb = hsv_to_rgb_v(h,s,v)
+    #rgb = hsv_to_rgb_v(h,s,v)
+    rgb = p2lc(h)
+    # put bins R2 < .25 in grey
+    rgb[v==0,:] = np.ones(3)*0.5
 
     # create output bed file
     bed_cols = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRgb','blockCount','blockSizes','blockStarts']
