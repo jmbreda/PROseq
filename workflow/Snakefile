@@ -42,9 +42,12 @@ rule all:
         #expand( os.path.join(config['outfold_bwa'],"{file}.bam"), file=['18035FL-105-01V1-01_S1_L008','PRO_SEQ_CT00_S1','18035FL-105-01_S1_L005','18035FL-105-01_S1_L006'] )
         #expand(os.path.join(config['outfold_bwa'],"{file}.bam"), file=config['Fastq_Files']['PE']),
         #expand(os.path.join(config['outfold_bwa'],"{file}.bam"), file=config['Fastq_Files']['SE']),
-        #os.path.join(config['outfold_bwa'],"CT00.bam")
+        #expand(os.path.join(config['outfold_bwa'],"18035FL-105-01V1-07_S7_L008.bam"), sample=config['Samples']),
+        #os.path.join(config['outfold_bwa'],"CT24.bam")
         #expand(os.path.join(config['outfold_bwa'],"{sample}.bam"), sample=config['Samples']),
-        expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        #expand(os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
+        expand(os.path.join(config['outfold_binned'],"CT00","NormCoverage_3p_forward_bin1000bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
+        #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
@@ -112,7 +115,7 @@ rule cutadapt_se:
     params:
         adapter = config['adapter']['fwd'],
         min_len = 16
-    threads: 4
+    threads: 12
     conda:
         "cutadapt"
     shell:
@@ -132,7 +135,7 @@ rule cutadapt_pe:
         adapter_fwd = config['adapter']['fwd'],
         adapter_rev = config['adapter']['rev'],
         min_len = 16
-    threads: 4
+    threads: 12
     conda:
         "cutadapt"
     shell:
@@ -190,7 +193,7 @@ rule mapped_uniq_MAPQ_sorted_se:
         bam=os.path.join(config['outfold_bwa'],"{file_se}.bam")
     params:
         MAPQ_min=config['MAPQ_min'],
-        mem='2G'
+        mem='4G'
     threads: 12
     shell:
         """
@@ -198,8 +201,7 @@ rule mapped_uniq_MAPQ_sorted_se:
         samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
             awk '$1 ~ /^@/ || $2 == "16" || $2 == "0"' |\
             grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
-            samtools sort -@ {threads} -m {params.mem} |\
-            samtools view -@ {threads} -bh > {output.bam}
+            samtools sort -@ {threads} -m {params.mem} > {output.bam}
         """
 
 ##------------------##
@@ -243,7 +245,7 @@ rule mapped_uniq_MAPQ_close_mates_sorted_pe:
         bam=os.path.join(config['outfold_bwa'],"{file_pe}.bam")
     params:
         MAPQ_min=config['MAPQ_min'],
-        mem='2G',
+        mem='4G',
         mate_dist_max=config['mate_dist_max']
     threads: 12
     shell:
@@ -253,8 +255,7 @@ rule mapped_uniq_MAPQ_close_mates_sorted_pe:
             awk '$1 ~ /^@/ || $2 == "81" || $2 == "97"' |\
             grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
             awk '$1 ~ /^@/ || $7 == "=" && $9 > -{params.mate_dist_max} && $9 < {params.mate_dist_max}' |\
-            samtools sort -@ {threads} -m {params.mem} |\
-            samtools view -@ {threads} -bh > {output.bam}
+            samtools sort -@ {threads} -m {params.mem} > {output.bam}
         """
 
 ##-----------------------------##
@@ -368,6 +369,8 @@ rule bin_coverage:
         bw=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw")
     output:
         bin_bw=os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw")
+    conda:
+        "pybigwig"
     shell:
         """
         python scripts/bin_bigwig.py -i {input.bw} -o {output.bin_bw} -b {wildcards.bin_size}

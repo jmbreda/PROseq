@@ -8,4 +8,5 @@ track_hubs/
 notebooks/__pycache__/
 notebooks/fig/
 tmp/
+tmp
 */__pycache__

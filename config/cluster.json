@@ -20,33 +20,26 @@
         "mem" : "6G"
     },
 
+
+    "cutadapt_se" :
+    {
+        "name" : "cutadapt_se",
+        "time" : "06:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    },
+
+    "cutadapt_pe" :
+    {
+        "name" : "cutadapt",
+        "time" : "06:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    },
+
     "bwa_aln_se" :
     {
         "name" : "bwa_aln_se",
-        "time" : "12:00:00",
-        "cpus-per-task" : 12,
-        "mem" : "10G"
-    },
-    
-    "bwa_sampe" :
-    {
-        "name" : "bwa_sampe",
-        "time" : "48:00:00",
-        "cpus-per-task" : 1,
-        "mem" : "10G"
-    },
-
-    "mapped_uniq_MAPQ_se" :
-    {
-        "name" : "mapped_uniq_MAPQ_se",
-        "time" : "12:00:00",
-        "cpus-per-task" : 12,
-        "mem" : "24G"
-    },
-
-    "bwa_aln_pe" :
-    {
-        "name" : "bwa_aln_pe",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "10G"
@@ -60,18 +53,42 @@
         "mem" : "10G"
     },
 
+    "mapped_uniq_MAPQ_sorted_se" :
+    {
+        "name" : "mapped_uniq_MAPQ_se",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "60G"
+    },
+
+    "bwa_aln_pe" :
+    {
+        "name" : "bwa_aln_pe",
+        "time" : "12:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "10G"
+    },
+
+    "bwa_sampe" :
+    {
+        "name" : "bwa_sampe",
+        "time" : "48:00:00",
+        "cpus-per-task" : 1,
+        "mem" : "10G"
+    },
+    
     "mapped_uniq_MAPQ_close_mates_sorted_pe" :
     {
         "name" : "mapped_uniq_MAPQ_close_mates_sorted_pe",
-        "time" : "12:00:00",
+        "time" : "24:00:00",
         "cpus-per-task" : 12,
-        "mem" : "24G"
+        "mem" : "48G"
     },
 
     "merge_bam" :
     {
         "name" : "merge_bam",
-        "time" : "12:00:00",
+        "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "20G"
     },
@@ -90,14 +107,6 @@
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "120G"
-    },
-
-    "cutadapt" :
-    {
-        "name" : "cutadapt",
-        "time" : "01:00:00",
-        "cpus-per-task" : 4,
-        "mem" : "80G"
     },
 
     "get_gene_phase_amp" :
