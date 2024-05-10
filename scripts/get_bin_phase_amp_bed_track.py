@@ -83,9 +83,9 @@ if __name__ == '__main__':
     v[df['R2']>.25] = 1
 
     #rgb = hsv_to_rgb_v(h,s,v)
-    rgb = p2lc(h)
+    rgb = p2lc(df['phase'].values)
     # put bins R2 < .25 in grey
-    rgb[v==0,:] = np.ones(3)*0.5
+    # rgb[v==0,:] = np.ones(3)*0.5
 
     # create output bed file
     bed_cols = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRgb','blockCount','blockSizes','blockStarts']

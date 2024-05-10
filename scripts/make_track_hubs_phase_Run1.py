@@ -1,32 +1,36 @@
 import os
 
 if __name__ == '__main__':
+    track_hub_name = 'PROseq_phase_Run1'
 
     genome = 'mm39'
-    track_hub_folder = '/data/web/sites/PROseq'
-    track_hub_url = 'http://upnaesrv1.epfl.ch/PROseq'
+    track_hub_folder = f'/data/web/sites/{track_hub_name}'
+    if not os.path.exists(track_hub_folder):
+        os.makedirs(track_hub_folder)
+    track_hub_url = f'http://upnaesrv1.epfl.ch/{track_hub_name}'
+    results_folder = '/bigdata/jbreda/PROseq/results'
 
     #link tracks to track_hub folder
-    link_to_data = '/data/web/sites/PROseq/tracks_bw_unbinned'
-    data_folder = '/bigdata/jbreda/PROseq/results/norm_counts/'
+    link_to_data = f'{track_hub_folder}/tracks_bw_unbinned'
+    data_folder = f'{results_folder}/norm_counts/'
     if not os.path.exists(link_to_data):
         os.system(f'ln -s {data_folder} {link_to_data}')
     
-    link_to_data = '/data/web/sites/PROseq/tracks_bw'
-    data_folder = '/bigdata/jbreda/PROseq/results/binned_norm_counts/'
+    link_to_data = f'{track_hub_folder}/tracks_bw'
+    data_folder = f'{results_folder}/binned_norm_counts/'
     if not os.path.exists(link_to_data):
         os.system(f'ln -s {data_folder} {link_to_data}')
 
-    link_to_data = '/data/web/sites/PROseq/tracks_bb'
-    data_folder = '/bigdata/jbreda/PROseq/results/phase_amp/'
+    link_to_data = f'{track_hub_folder}/tracks_bb'
+    data_folder = f'{results_folder}/phase_amp/Run1/'
     if not os.path.exists(link_to_data):
         os.system(f'ln -s {data_folder} {link_to_data}')
 
     # make track hub
     outfile=f'{track_hub_folder}/hub.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
-        fout.write("hub PRO-seq\n")
-        fout.write("shortLabel PRO-seq\n")
+        fout.write(f"hub {track_hub_name}\n")
+        fout.write(f"shortLabel {track_hub_name}\n")
         fout.write("longLabel PRO-seq data in mouse at times 0h-44h in steps of 4h, forward and reverse stand\n")
         fout.write("genomesFile genomes.txt\n")
         fout.write("email jeremie.breda@epfl.ch\n")
@@ -41,7 +45,7 @@ if __name__ == '__main__':
         fout.write("\n")
 
     # make ChIP_Atlas.html
-    outfile=f'{track_hub_folder}/PROseq.html'
+    outfile=f'{track_hub_folder}/{track_hub_name}.html'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("PRO-seq data in mouse at times 0h-44h in steps of 4h\n")
 

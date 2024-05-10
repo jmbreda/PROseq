@@ -26,13 +26,14 @@ if __name__ == '__main__':
     P = 24
     omega_n = 2*np.pi*n/P
     CHR = [f'chr{i}' for i in range(1,20)] + ['chrX','chrY','chrM']
-    Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)]
+    #Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)] # Run1
+    Samples = [f'CT{t:02d}' for t in T] # Run2
     Strands = ['+','-']
     strand_dict = {'forward':'+', 'reverse':'-', '+':'forward', '-':'reverse'}
 
     f = {}
-    for sample in Samples:
-        t = int(sample.split('_')[2][2:])
+    for t in T:
+        sample = f'CT{t:02d}'
         f[t] = {}
         for strand in Strands:
             fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{args.bin_size}bp.bw"

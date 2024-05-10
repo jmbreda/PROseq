@@ -4,13 +4,17 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Make bins bed file')
-    parser.add_argument('-i','--input', help='Input bigwig file', required=True)
-    parser.add_argument('-b','--bin_size', help='Bin size', type=int)
-    parser.add_argument('-o','--output', help='Output bigwig file', required=True)
+    parser.add_argument('--input', help='Input bigwig file', required=True)
+    parser.add_argument('--bin_size', help='Bin size', type=int)
+    parser.add_argument('--output', help='Output bigwig file', required=True)
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
+
+    print("For some reason this script does not work. Use the following code instead:")
+    print("bedtools map -a bins_bed -b input.bed -c 4 -o mean -null out | awk '$4 != "out"' > output.bed")
+    exit()
 
     # read arguments
     args = parse_args()

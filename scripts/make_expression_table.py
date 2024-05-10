@@ -26,7 +26,8 @@ if __name__ == '__main__':
     # Load bigWigs
     bw_files = {}
     for t in T:
-        sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
+        #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001' # Run1
+        sample = f'CT{t:02d}' # Run2
         bw_files[t] = {}
         for strand in Strands:
             fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand}_bin{args.bin_size}bp.bw"

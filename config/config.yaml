@@ -13,23 +13,21 @@ outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
 outfold_bwa:                "results/bwa"
 outfold_coverage:           "results/coverage"
-outfold_star:               "results/star"
-outfold_counts:             "results/counts"
 outfold_norm:               "results/norm_coverage"
 outfold_binned:             "results/binned_norm_coverage"
 outfold_fig:                "results/fig"
 outfold_phase_amp:          "results/phase_amp"
 outfold_space_time_fourier: "results/space_time_fourier"
 outfold_kalman:             "results/kalman"
+# unused
+outfold_star:               "results/star"
+outfold_counts:             "results/counts"
 
 Species: GRCm39
 Bin_size:
     - '100'
-    #- '200'
-    #- '300'
-    #- '500'
     - '1000'
-    #- '10000'
+    - '10000'
 
 Samples:
     - CT00
