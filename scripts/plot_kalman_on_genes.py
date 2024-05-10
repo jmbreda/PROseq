@@ -33,7 +33,7 @@ def get_all_data(bw_folder,bin_size):
 
         # separate by strand and remove rows with 8 or more NaNs (out of 12)
         for strand in Strands:
-            df[chr][strand] = df_all.loc[:,[f"{t}{strand}" for t in np.arange(0,48,4)]]
+            df[chr][strand] = df_all.loc[:,[f"CT{t:02d}{strand}" for t in np.arange(0,48,4)]]
             df[chr][strand].columns = T
             df[chr][strand].dropna(thresh=2+len(T)-8,inplace=True) # remove rows with 8 or more NaNs (out of 12)
 
@@ -53,7 +53,8 @@ def get_data(coord, bw_folder, bin_size):
     # Load bigWigs
     bw_files = {}
     for t in T:
-        sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
+        #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
+        sample = f'CT{t:02d}'
         fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
         bw_files[t] = bw.open(fin)
 
@@ -61,7 +62,6 @@ def get_data(coord, bw_folder, bin_size):
     df = pd.DataFrame(columns=['start','end'])
     for t in T:
         df_t = pd.DataFrame(bw_files[t].intervals(chr,int(start),int(end)),columns=['start','end',f"{t}"])
-        #df_t.columns = ['start','end',f"{t}"]
         df = pd.merge(df,df_t,on=['start','end'],how='outer')
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)

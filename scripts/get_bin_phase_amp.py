@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import pyBigWig as bw
-import os
 import argparse
 from scipy.stats import beta
 
@@ -31,33 +28,25 @@ if __name__ == '__main__':
     Strands = ['+','-']
     strand_dict = {'forward':'+', 'reverse':'-', '+':'forward', '-':'reverse'}
 
-    f = {}
-    for t in T:
-        sample = f'CT{t:02d}'
-        f[t] = {}
-        for strand in Strands:
-            fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{args.bin_size}bp.bw"
-            f[t][strand] = bw.open(fin)
-
     # get overall phase and amplitude
-    df_overall = pd.read_csv(args.overall_phase_amp_table,sep='\t')
-    x_overall = 0.5 * df_overall.amplitude.values * np.cos(omega_n*T - df_overall.phase.values)
-    del df_overall
+    #df_overall = pd.read_csv(args.overall_phase_amp_table,sep='\t')
+    #x_overall = 0.5 * df_overall.amplitude.values * np.cos(omega_n*T - df_overall.phase.values)
+    #del df_overall
 
-    df_out = pd.DataFrame(columns=['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression'])    
+    df_out = pd.DataFrame(columns=['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression'])
     for chr in CHR:
         print(chr)
+
+        # read chromosome expression data
+        infile = f"{args.bw_folder}/NormCoverage_3p_bin{args.bin_size}bp_chr{chr}.csv"
+        df = pd.read_csv(infile,sep='\t')
+
         for strand in Strands:
             print(strand)
-            df = pd.DataFrame(columns=['start','end'])
-            for t in T:
-                df_t = pd.DataFrame(f[t][strand].intervals(chr))
-                df_t.columns = ['start','end',f"{t}"]
-                df = pd.merge(df,df_t,on=['start','end'],how='outer')
 
-            df.sort_values('start',inplace=True)
-            df.reset_index(inplace=True,drop=True)
-            X = df[[str(t) for t in T]].values
+            # select strand
+            cols = [sample+strand for sample in Samples]
+            X = df.loc[:,cols].values
 
             # keep only bins with less than 75% nan values (at least 4 time points with data)
             idx_in = np.isnan(X).sum(1)/X.shape[1] < .75

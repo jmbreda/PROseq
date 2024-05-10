@@ -1,10 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import pyBigWig as bw
-import os
 import argparse
-from scipy.stats import beta
 import sys
 sys.path.insert(0, '/home/jbreda/PROseq/scripts/Phase_to_LabColor')
 from phase_to_labcolor import phase_to_labcolor as p2lc

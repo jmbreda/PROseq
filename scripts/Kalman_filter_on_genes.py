@@ -56,7 +56,8 @@ def get_data(coord, bw_folder, bin_size):
     # get bigwig data to dataframe
     df = pd.DataFrame(columns=['start','end'])
     for t in T:
-        sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001'
+        #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001' # Run1
+        sample = f'CT{t:02d}'
         fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
         with bw.open(fin,'r') as bw_file:
             df_t = pd.DataFrame(bw_file.intervals(chr,int(start),int(end)+bin_size),columns=['start','end',f"{t}"])

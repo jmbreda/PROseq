@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
-import pyBigWig as bw
 import argparse
 
 def parse_args():    
     parser = argparse.ArgumentParser(description='Make bins bed file')
-    parser.add_argument('--bw_folder', help='Input bigwigs folder', default='results/binned_norm_coverage')
+    parser.add_argument('--bw_folder', help='Input bed folder', default='results/binned_norm_coverage')
     parser.add_argument('--bin_size', help='Bin size', type=int, default=1000)
     parser.add_argument('--chr', help='Chromosome', default='chr19')
     parser.add_argument('--output', help='Output table', required=True)
@@ -23,23 +22,18 @@ if __name__ == '__main__':
     T = np.arange(0,48,4)
     Nt = len(T)
 
-    # Load bigWigs
-    bw_files = {}
-    for t in T:
-        #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001' # Run1
-        sample = f'CT{t:02d}' # Run2
-        bw_files[t] = {}
-        for strand in Strands:
-            fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand}_bin{args.bin_size}bp.bw"
-            bw_files[t][strand] = bw.open(fin)
-
     # get data
     df = {}
     for strand in Strands:
         df[strand] = pd.DataFrame(columns=['start','end'])
         for t in T:
-            df_t = pd.DataFrame(bw_files[t][strand].intervals(args.chr))
-            df_t.columns = ['start','end',f"{t}"]
+            sample = f'CT{t:02d}' # Run2
+            fin = f'{args.bw_folder}/{sample}/NormCoverage_3p_{strand}_bin{args.bin_size}bp.bedgraph'
+
+            df_t = pd.read_csv(fin,sep='\t',header=None)
+            df_t = df_t.loc[df_t.loc[:,0] == args.chr,1:]
+            df_t.columns = ['start','end',sample]
+
             df[strand] = pd.merge(df[strand],df_t,on=['start','end'],how='outer')
         df[strand].sort_values('start',inplace=True)
 

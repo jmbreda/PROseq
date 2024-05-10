@@ -26,8 +26,8 @@ if __name__ == '__main__':
     df = df.apply(lambda x: np.log(x+1/args.bin_size),axis=1)
 
     # separate mesurments at time [0-24) and [24-48)
-    x = df.loc[:,[f"{t}{s}" for t in np.arange(0 ,24,4) for s in ['+', '-']]].values.flatten()
-    y = df.loc[:,[f"{t}{s}" for t in np.arange(24,48,4) for s in ['+', '-']]].values.flatten()
+    x = df.loc[:,[f"CT{t:02d}{s}" for t in np.arange(0 ,24,4) for s in ['+', '-']]].values.flatten()
+    y = df.loc[:,[f"CT{t:02d}{s}" for t in np.arange(24,48,4) for s in ['+', '-']]].values.flatten()
     df_err = pd.DataFrame({'x':x,'y':y})
 
     # estimate error as the difference between the two measurements
@@ -39,16 +39,16 @@ if __name__ == '__main__':
     df_err = df_err.loc[~df_err.isna().any(axis=1),:]
 
     # exponential fit
-    def func(x, a, λ, c):
-        return a * np.exp(-λ * x) + c
+    def func(x, a, lam, c):
+        return a * np.exp(-lam * x) + c
     x0 = np.argmax(df_err['err'].values)
-    popt, pcov = curve_fit(func, df_err['m'][x0:], df_err['err'][x0:], p0=[1, 0.1, 0.1])
+    popt, pcov = curve_fit(func, df_err['m'][x0:], df_err['err'][x0:], p0=[1, 0.1, 0.1],maxfev=10000)
 
     # plot
     fig, axes = plt.subplots(1,2,figsize=(12,5))
 
     ax = axes[0]
-    ax.scatter(x,y,s=1,c='k',alpha=.2,rasterized=True)
+    #ax.scatter(x,y,s=1,c='k',alpha=.2,rasterized=True)
     ax.plot(df_err.m,df_err.m,'r.',lw=2)
     ax.plot(df_err.m - 2*np.sqrt(df_err['err']),df_err.m + 2*np.sqrt(df_err['err']),'r:',lw=1)
     ax.plot(df_err.m + 2*np.sqrt(df_err['err']),df_err.m - 2*np.sqrt(df_err['err']),'r:',lw=1)
@@ -58,8 +58,8 @@ if __name__ == '__main__':
 
     ax = axes[1]
     ax.plot(df_err['m'],df_err['err'],'k.',lw=1)
-    _x = np.linspace(df_err['m'].min(),df_err['m'].max(),100)
-    ax.plot(_x, func(_x, *popt), 'r-',lw=1)
+    #_x = np.linspace(df_err['m'].min(),df_err['m'].max(),100)
+    #ax.plot(_x, func(_x, *popt), 'r-',lw=1)
     ax.title.set_text(f"y = {popt[0]:.3f} * exp(-{popt[1]:.2f} * x) + {popt[2]:.2f}")
     ax.set_xlabel('mean')
     ax.set_ylabel('var (mean squared error)')
