@@ -28,4 +28,3 @@ tot_count=$(cat "$total_count_file")
 
 # normalize and sort bedgraph
 awk -v median="$median" -v tot_count="$tot_count" '{print $1"\t"$2"\t"$3"\t"$4*median/tot_count}' "$bedgraph" > "$outfile"
-#bedSort "$outfile" "$outfile"

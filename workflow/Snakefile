@@ -45,13 +45,13 @@ rule all:
         #expand(os.path.join(config['outfold_bwa'],"{file}.bam"), file=config['Fastq_Files']['SE']),
         #expand(os.path.join(config['outfold_bwa'],"{sample}.bam"), sample=config['Samples']),
         # coverage
+        #expand(os.path.join(config['outfold_coverage'],"{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
-        expand(os.path.join(config['outfold_binned'],"CT00","NormCoverage_3p_forward_bin10000bp.bw"))
         #expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_binned'],"NormCoverage_3p_bin{bin_size}bp_{chr}.csv"),bin_size=config['Bin_size'],chr=config['Chromosomes']['GRCm39']),
         # Phase and amplitude
-        #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
-        #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
+        expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb"),bin_size=config['Bin_size'])
         # Time-space Fourier
         # expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'])
         # Kalman
@@ -374,9 +374,13 @@ rule norm_coverage_bw:
         chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
     output:
         bw=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bw")
+    params:
+        tmp_sorted=os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.sorted.bedgraph")
     shell:
         """
-        bedGraphToBigWig {input.norm_bg} {input.chrom_size} {output.bw}
+        sort -k1,1 -k2,2n {input.norm_bg} > {params.tmp_sorted}
+        bedGraphToBigWig {params.tmp_sorted} {input.chrom_size} {output.bw}
+        rm {params.tmp_sorted}
         """
 
 rule make_bin_bed:
@@ -409,9 +413,13 @@ rule binned_norm_coverage_bw:
         chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
     output:
         bw=os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw")
+    params:
+        tmp_sorted=os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.sorted.bedgraph")
     shell:
         """
-        bedGraphToBigWig {input.bed} {input.chrom_size} {output.bw}
+        sort -k1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedGraphToBigWig {params.tmp_sorted} {input.chrom_size} {output.bw}
+        rm {params.tmp_sorted}
         """
 
 rule make_tables:
@@ -493,10 +501,13 @@ rule bin_bed_to_bigBed:
         chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes.{bin_size}bp")
     output:
         bb=os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.bb")
+    params:
+        tmp_sorted=os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{bin_size}bp_{strand}.sorted.bed")
     shell:
         """
-        bedSort {input.bed} {input.bed}
-        bedToBigBed {input.bed} {input.chrom_size} {output.bb}
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
         """
 
 ##--------------------------------------##
@@ -550,10 +561,13 @@ rule gene_bed_to_bigBed:
         chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes.{bin_size}bp")
     output:
         bb=os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.bb")
+    params:
+        tmp_sorted=os.path.join(config['outfold_phase_amp'],"gene_phase_amp_{bin_size}bp.sorted.bed")
     shell:
         """
-        bedSort {input.bed} {input.bed}
-        bedToBigBed {input.bed} {input.chrom_size} {output.bb}
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
         """
 
 ##--------------------------------------##

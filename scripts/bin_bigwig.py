@@ -1,6 +1,7 @@
 import pyBigWig as bw
 import argparse
 import numpy as np
+import sys
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Make bins bed file')
@@ -13,8 +14,8 @@ def parse_args():
 if __name__ == '__main__':
 
     print("For some reason this script does not work. Use the following code instead:")
-    print("bedtools map -a bins_bed -b input.bed -c 4 -o mean -null out | awk '$4 != "out"' > output.bed")
-    exit()
+    print("bedtools map -a bins_bed -b input.bed -c 4 -o mean -null out | awk '$4 != \"out\"' > output.bed")
+    sys.exit()
 
     # read arguments
     args = parse_args()

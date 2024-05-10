@@ -5,9 +5,9 @@ import argparse
 
 def parse_args():    
     parser = argparse.ArgumentParser(description='Make bins bed file')
-    parser.add_argument('--bw_folder', help='Input bigwigs folder', required=True)
-    parser.add_argument('--bin_size', help='Bin size', type=int)
-    parser.add_argument('--chr', help='Chromosome', required=True)
+    parser.add_argument('--bw_folder', help='Input bigwigs folder', default='results/binned_norm_coverage')
+    parser.add_argument('--bin_size', help='Bin size', type=int, default=1000)
+    parser.add_argument('--chr', help='Chromosome', default='chr19')
     parser.add_argument('--output', help='Output table', required=True)
     args = parser.parse_args()
     return args
