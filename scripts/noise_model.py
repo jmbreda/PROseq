@@ -21,9 +21,11 @@ if __name__ == '__main__':
     df = pd.DataFrame()
     for fin in args.in_tables:
         df_t = pd.read_csv(fin,index_col=0,sep='\t')
+        # remove rows with more than half of nan values
+        df_t = df_t.loc[df_t.isna().sum(axis=1) < df_t.shape[1]/2,:]
         df = pd.concat([df,df_t],axis=0)
     df.fillna(0,inplace=True)
-    df = df.apply(lambda x: np.log(x+1/args.bin_size),axis=1)
+    df = df.apply(lambda x: np.log2(x+1),axis=1)
 
     # separate mesurments at time [0-24) and [24-48)
     x = df.loc[:,[f"CT{t:02d}{s}" for t in np.arange(0 ,24,4) for s in ['+', '-']]].values.flatten()
@@ -31,18 +33,25 @@ if __name__ == '__main__':
     df_err = pd.DataFrame({'x':x,'y':y})
 
     # estimate error as the difference between the two measurements
+    n_bin = 50
     df_err['err'] = (df_err.x - df_err.y)**2
     df_err['m'] = (df_err.x + df_err.y)/2
-    df_err['m_bin'] = pd.cut(df_err.m,30)
-    df_err = df_err.groupby(['m_bin']).agg({'x':'mean','y':'mean','m':'mean','err':'mean'}).reset_index()
+    df_err['m_bin'] = pd.cut(df_err.m,n_bin)
+    df_err['n'] = 1
+    df_err = df_err.groupby(['m_bin']).agg({'x':'mean','y':'mean','m':'mean','err':'mean','n':'sum'}).reset_index()
     # remove nan rows
     df_err = df_err.loc[~df_err.isna().any(axis=1),:]
+    # remove bins with less than 10 measurements
+    df_err = df_err.loc[df_err.n > 10,:]
+    df_err.reset_index(drop=True, inplace=True)
+    idx_err_max = np.argmax(df_err['err'].values)
 
     # exponential fit
     def func(x, a, lam, c):
         return a * np.exp(-lam * x) + c
-    x0 = np.argmax(df_err['err'].values)
-    popt, pcov = curve_fit(func, df_err['m'][x0:], df_err['err'][x0:], p0=[1, 0.1, 0.1],maxfev=10000)
+    
+    popt, pcov = curve_fit(func, df_err.loc[idx_err_max:,'m'].values, df_err.loc[idx_err_max:,'err'].values, p0=[100, 1, 0.1],maxfev=10000)
+    err_max = func(df_err.at[idx_err_max,'m'], *popt)
 
     # plot
     fig, axes = plt.subplots(1,2,figsize=(12,5))
@@ -58,8 +67,10 @@ if __name__ == '__main__':
 
     ax = axes[1]
     ax.plot(df_err['m'],df_err['err'],'k.',lw=1)
-    #_x = np.linspace(df_err['m'].min(),df_err['m'].max(),100)
-    #ax.plot(_x, func(_x, *popt), 'r-',lw=1)
+    _x = np.linspace(df_err.at[idx_err_max,'m'],df_err.loc[:,'m'].values[-1],100)
+    ax.plot(_x, func(_x, *popt), 'r-',lw=1)
+    ax.plot(df_err.loc[[0,idx_err_max],'m'].values,[err_max,err_max],'r-',lw=1)
+
     ax.title.set_text(f"y = {popt[0]:.3f} * exp(-{popt[1]:.2f} * x) + {popt[2]:.2f}")
     ax.set_xlabel('mean')
     ax.set_ylabel('var (mean squared error)')
@@ -77,5 +88,7 @@ if __name__ == '__main__':
     fout.write(f"a\t{a}\n")
     fout.write(f"b\t{b}\n")
     fout.write(f"c\t{c}\n")
+    fout.write(f"err_max\t{err_max}\n")
+    fout.write(f"m_err_max\t{df_err.at[idx_err_max,'m']}\n")
     fout.close()
 

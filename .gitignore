@@ -9,4 +9,7 @@ notebooks/__pycache__/
 notebooks/fig/
 tmp/
 tmp
+tmpdir
 */__pycache__
+scripts/*/__pycache__
+notebooks/genes_bedgraph/

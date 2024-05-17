@@ -4,12 +4,14 @@ import pyBigWig as bw
 import os
 import argparse
 from scipy.stats import beta
+import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
     parser.add_argument('--bin_size', help='Bin size', default=100, type=int)
     parser.add_argument('--bw_folder', help='Input data folder', type=str)
     parser.add_argument('--out_table', help='Output phase, amplitude, expression and fit stats table', type=str)
+    parser.add_argument('--out_fig', help='Output figure of data and fit', type=str)
     args = parser.parse_args()
     return args
 
@@ -23,7 +25,7 @@ if __name__ == '__main__':
     n = 1
     P = 24
     omega_n = 2*np.pi*n/P
-    CHR = [f'chr{i}' for i in range(1,20)] + ['chrX','chrY','chrM']
+    CHR = [f'chr{i+1}' for i in range(19)] + ['chrX','chrY','chrM']
     #Samples = [f'PRO_SEQ_CT{4*i:02d}_S{i+1}_R1_001' for i in range(12)] #Run1
     Samples = [f'CT{t:02d}' for t in T] #Run2
     Strands = ['+','-']
@@ -79,7 +81,7 @@ if __name__ == '__main__':
                 X = np.vstack([X,X_bt.values])
 
     # log transform, add pseudo counts
-    X = np.log(X + 1/args.bin_size)
+    X = np.log(X + 1)
 
     x = X.mean(axis=0)
 
@@ -93,9 +95,7 @@ if __name__ == '__main__':
     x_hat = mu + 0.5 * a_n * np.cos(omega_n*T - phi_n)
     sig2_res = np.var(x - x_hat)
     sig2_tot = np.var(x)
-    R2 = np.zeros(sig2_res.shape)
-    R2[sig2_tot==0] = 0
-    R2[sig2_tot!=0] = 1 - sig2_res[sig2_tot!=0] / sig2_tot[sig2_tot!=0]
+    R2 = 1 - sig2_res / sig2_tot
     p = 3
     pval = 1 - beta.cdf(R2, (p - 1) / 2, (N - p) / 2)
     if phi_n<0:
@@ -113,3 +113,21 @@ if __name__ == '__main__':
                        'mean_log_expression':[x.mean()]})
     
     df.to_csv(args.out_table,sep='\t',index=False)
+
+    # plot fit
+    x_std = X.std(axis=0)
+
+    fig, ax = plt.subplots()
+
+    ax.errorbar(T,x,x_std,fmt='o',label=r'data $\mu \pm \sigma$')
+    t = np.linspace(0,48,1000)
+    x_hat = mu + 0.5 * a_n * np.cos(omega_n*t - phi_n)
+    ax.plot(t,x_hat,label='fit')
+
+    ax.set_xlabel('Time (h)')
+    ax.set_ylabel('Mean log expression')
+    ax.legend()
+    ax.set_title(f'Overall fit : R2={R2:.2f}, pval={pval:.2e}')
+    
+    fig.tight_layout()
+    fig.savefig(args.out_fig)

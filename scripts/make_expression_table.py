@@ -44,11 +44,5 @@ if __name__ == '__main__':
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)
 
-    # replace start and end with position in the middle of the bin, and set as index
-    df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
-    df.drop('end',axis=1,inplace=True)
-    df.columns = ['pos'] + df.columns[1:].tolist()
-    df.set_index('pos',inplace=True)
-
     # save table
-    df.to_csv(args.output,sep='\t',index=True,header=True)
+    df.to_csv(args.output,sep='\t',index=False,header=True)

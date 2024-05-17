@@ -14,50 +14,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-scalar = float # a scale value (0.0 to 1.0)
-def hsv_to_rgb( h:scalar, s:scalar, v:scalar) -> tuple:
-    if s:
-        if h == 1.0: h = 0.0
-        i = int(h*6.0); f = h*6.0 - i
-        
-        w = v * (1.0 - s)
-        q = v * (1.0 - s * f)
-        t = v * (1.0 - s * (1.0 - f))
-        
-        if i==0: return (v, t, w)
-        if i==1: return (q, v, w)
-        if i==2: return (w, v, t)
-        if i==3: return (w, q, v)
-        if i==4: return (t, w, v)
-        if i==5: return (v, w, q)
-    else: return (v, v, v)
-
-# vectorized version
-def hsv_to_rgb_v( h, s, v) -> tuple:
-    
-    out = np.full([h.shape[0],3], np.nan)
-
-    h[h==1.0] = 0.0
-    i = (h*6.0).astype(int)
-    f = h*6.0 - i
-        
-    w = v * (1.0 - s)
-    q = v * (1.0 - s * f)
-    t = v * (1.0 - s * (1.0 - f))
-
-    i[s==0] = -1
-
-    out[i==0,:] = np.array([v[i==0],t[i==0],w[i==0]]).T
-    out[i==1,:] = np.array([q[i==1],v[i==1],w[i==1]]).T
-    out[i==2,:] = np.array([w[i==2],v[i==2],t[i==2]]).T
-    out[i==3,:] = np.array([w[i==3],q[i==3],v[i==3]]).T
-    out[i==4,:] = np.array([t[i==4],w[i==4],v[i==4]]).T
-    out[i==5,:] = np.array([v[i==5],w[i==5],q[i==5]]).T
-    out[i==-1,:] = np.array([v[i==-1],v[i==-1],v[i==-1]]).T
-
-    return out
-
-
 if __name__ == '__main__':
     
     args = parse_args()
@@ -77,7 +33,7 @@ if __name__ == '__main__':
     #rgb = hsv_to_rgb_v(h,s,v)
     rgb = p2lc(df['phase'].values)
     # put bins R2 < .25 in grey
-    # rgb[v==0,:] = np.ones(3)*0.5
+    rgb[df['R2']<0.25,:] = np.ones(3)*0.5
 
     # create output bed file
     bed_cols = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRgb','blockCount','blockSizes','blockStarts']
@@ -105,26 +61,37 @@ if __name__ == '__main__':
     # get color
     color = bed['itemRgb'].str.split(',').apply(lambda x: [int(i)/255 for i in x])
     
-    n_rows = 1
+    n_rows = 2
     n_cols = 3
     plt.figure(figsize=(n_cols*5,n_rows*5))
-    axes = [None,None,None]
-    axes[0] = plt.subplot(131)
-    axes[1] = plt.subplot(132)
-    axes[2] = plt.subplot(133, projection='polar')
     
-    ax = axes[0]
+    ax = plt.subplot(231)
+    ax.hist(df['R2'],bins=100)
+    ax.set_xlabel(r'$R^2$')
+    ax.set_ylabel('Count')
+
+    ax = plt.subplot(232)
+    ax.hist(-np.log10(df['pval']),bins=100)
+    ax.set_xlabel('-log10(p-value)')
+    ax.set_ylabel('Count')
+
+    ax = plt.subplot(233)
+    ax.hist(df['mean_log_expression'],bins=100)
+    ax.set_xlabel('Mean log expression')
+    ax.set_ylabel('Count')
+                  
+    ax = plt.subplot(234)
     ax.hist(df['phase']/(2*np.pi)*24,bins=100)
     ax.set_xlabel('Phase')
     ax.set_ylabel('Count')
 
-    ax = axes[1]
+    ax = plt.subplot(235)
     ax.hist(df['amplitude'],bins=100)
     ax.set_xlabel('Amplitude')
     ax.set_ylabel('Count')
     
     # make polar plot
-    ax = axes[2]
+    ax = plt.subplot(236,projection='polar')
     ax.scatter(df['phase'],df['amplitude'],s=10,marker='o',alpha=df['R2'],c=color,rasterized=True)
     ax.set_theta_zero_location("N")
     ax.set_theta_direction(-1)
@@ -135,5 +102,4 @@ if __name__ == '__main__':
     ax.set_ylabel('Amplitude')
 
     plt.tight_layout()
-    plt.savefig('tmp.pdf',dpi=300)
     plt.savefig(args.out_fig,dpi=300)

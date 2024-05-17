@@ -71,7 +71,7 @@ if __name__ == '__main__':
                 fout.write("itemRgb on\n")
                 fout.write(f"shortLabel Bin phase {strand} {bin_size}bp\n")
                 fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (bordeau: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
-                fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/bin_phase_amp_{bin_size}bp_{strand}.bb\n")
+                fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/bin_phase_amp_{strand}_{bin_size}bp.bb\n")
                 if bin_size == 1000:
                     fout.write("visibility dense\n")
                 else:
@@ -79,18 +79,13 @@ if __name__ == '__main__':
                 fout.write("\n")
 
         # Bed tracks with gene phase
-        bin_size = 100
-        
-        fout.write(f"track gene_phase_{bin_size}\n")
+        fout.write(f"track gene_phase\n")
         fout.write("type bigBed 9\n")
         fout.write("itemRgb on\n")
-        fout.write(f"shortLabel Gene phase {bin_size}bp\n")
-        fout.write(f"longLabel Gene phase and amplitude {bin_size}bp mapped in RGB space (bordeau: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
-        fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp_{bin_size}bp.bb\n")
-        if bin_size == 100:
-            fout.write("visibility pack\n")
-        else:
-            fout.write("visibility hide\n")
+        fout.write(f"shortLabel Gene phase\n")
+        fout.write(f"longLabel Gene phase and amplitude mapped in RGB space (bordeau: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+        fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp.bb\n")
+        fout.write("visibility pack\n")
         fout.write("\n")
     
         # BigWig composite tracks with bin expression

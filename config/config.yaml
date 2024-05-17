@@ -27,7 +27,7 @@ Species: GRCm39
 Bin_size:
     - '100'
     - '1000'
-#    - '10000'
+    - '10000'
 
 Samples:
     - CT00
