@@ -5,6 +5,7 @@ import argparse
 from multiprocessing import Pool
 from functools import partial
 import h5py
+import re
 
 import sys
 sys.path.insert(0, 'scripts')
@@ -50,38 +51,48 @@ def get_all_tables(bw_folder,bin_size):
 def get_data(coord, bw_folder, bin_size):
 
     T = np.arange(0,48,4)
+    Samples = [f'CT{t:02d}' for t in T]
+    #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001' # Run1
     strand_dict = {'+': 'forward', '-': 'reverse'}
     [chr,start,end,strand] = coord.split(':')
 
     # get bigwig data to dataframe
     df = pd.DataFrame(columns=['start','end'])
-    for t in T:
-        #sample = f'PRO_SEQ_CT{t:02d}_S{t//4+1}_R1_001' # Run1
-        sample = f'CT{t:02d}'
+    for sample in Samples:
         fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
         with bw.open(fin,'r') as bw_file:
-            df_t = pd.DataFrame(bw_file.intervals(chr,int(start),int(end)+bin_size),columns=['start','end',f"{t}"])
+            df_t = pd.DataFrame(bw_file.intervals(chr,int(start),int(end)+bin_size),columns=['start','end',sample])
         df = pd.merge(df,df_t,on=['start','end'],how='outer')
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)
 
-    # replace start and end with position in the middle of the bin, and set as index
-    df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
-    df.rename(columns={'start':'pos'},inplace=True)
-    df.drop('end',axis=1,inplace=True)
-    df.set_index('pos',inplace=True)
+    # get positions as the middle of the bin
+    positions = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
 
-    df.fillna(0,inplace=True)
-    df = df.apply(lambda x: np.log(x+1/bin_size),axis=1)
+    # get measurments matrix (time x position)
+    measurements = df.loc[:,Samples].values.T.astype(float) # time x position
+    measurements[np.isnan(measurements)] = 0
+    measurements = np.log2(measurements+1)
 
-    return df
+    assert measurements.shape[1] == positions.shape[0]
+    
+    return measurements, positions
 
 def get_gtf(infile):
 
     # Read gtf file
     gtf = pd.read_csv(infile,sep='\t',header=None)
     gtf.columns = ['chr','source','type','start','end','score','strand','frame','attribute']
-    gtf['gene_name'] = gtf.attribute.str.extract(r'gene_name "(.*?)";')
+
+    # Function to extract attributes
+    def extract_attribute(entry,attribute):
+        match = re.search(rf'{attribute} "([^"]+)"', entry)
+        if match:
+            return match.group(1)
+        else:
+            return None
+    
+    gtf['gene_name'] = gtf['attribute'].apply(extract_attribute,attribute='gene_name')
     N_gene = gtf.shape[0]
 
     # fix gene duplicates
@@ -168,7 +179,7 @@ if __name__ == '__main__':
     gtf = get_gtf(args.gtf)
     
     # get data
-    df = get_all_tables(args.bw_folder,args.bin_size)
+    #df = get_all_tables(args.bw_folder,args.bin_size)
 
     # get noise model parametrs
     fin = open(args.noise_model_parameters,'r')
@@ -200,18 +211,21 @@ if __name__ == '__main__':
 
     #for gene in ["Cry1","Cry2"]:
     for gene in gtf.index:
+        #print(gene)
         coord = gtf.loc[gene,['chr','start','end','strand']]
         
-        #COORD = f"{coord.chr}:{coord.start}:{coord.end}:{coord.strand}"
-        #df = get_data(COORD, args.bw_folder, args.bin_size)
+        COORD = f"{coord.chr}:{coord.start}:{coord.end}:{coord.strand}"
+        measurements, positions = get_data(COORD, args.bw_folder, args.bin_size)
 
-        # get small region of the chromosome
-        idx_pos = (df[coord.chr][coord.strand].index > coord.start-args.bin_size) & (df[coord.chr][coord.strand].index < coord.end+args.bin_size)
-        if idx_pos.sum() == 0:
+        if measurements.shape[1] < 3:
             continue
 
-        measurements = df[coord.chr][coord.strand].loc[idx_pos,:].values.T # time x position
-        positions = df[coord.chr][coord.strand].loc[idx_pos,:].index # positions bins middle [bp]
+        # get small region of the chromosome
+        #idx_pos = (df[coord.chr][coord.strand].index > coord.start-args.bin_size) & (df[coord.chr][coord.strand].index < coord.end+args.bin_size)
+        #if idx_pos.sum() == 0:
+        #    continue
+        #measurements = df[coord.chr][coord.strand].loc[idx_pos,:].values.T # time x position
+        #positions = df[coord.chr][coord.strand].loc[idx_pos,:].index # positions bins middle [bp]
 
         # fill missing values with nans
         x = np.arange(positions[0],positions[-1]+1,args.bin_size)
@@ -226,7 +240,9 @@ if __name__ == '__main__':
         for i in range(len(x)):
             if np.isnan(X[:,i]).all():
                 continue
-            R[i,:,:] = np.diag(Noise_params['a'] * np.exp(-Noise_params['b'] * X[:,i] ) + Noise_params['c'] )
+            r_i = Noise_params['a'] * np.exp(-Noise_params['b'] * X[:,i] ) + Noise_params['c']
+            r_i[X[:,i] < Noise_params['m_err_max']] = Noise_params['err_max']
+            R[i,:,:] = 10*np.diag(r_i)
 
         # normalize
         X[:,idx] -= measurements.mean(0)

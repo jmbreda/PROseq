@@ -3,13 +3,14 @@ import pandas as pd
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import argparse
+import pyBigWig as bw
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Fit noise model as a function of mean expression')
     parser.add_argument('--bin_size', help='Bin size', default=1000, type=int)
     parser.add_argument('--out_table', help='Output table', default='results/noise_model.csv', type=str)
     parser.add_argument('--out_fig', help='Output figure', default='results/fig/noise_model.pdf', type=str)
-    parser.add_argument('--in_tables', help='Input tables', nargs='+', type=str)
+    parser.add_argument('--bw_folder', help='Input data folder', default='results/binned_norm_coverage', type=str)
 
     return parser.parse_args()
 
@@ -17,19 +18,41 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    # load tables
-    df = pd.DataFrame()
-    for fin in args.in_tables:
-        df_t = pd.read_csv(fin,index_col=0,sep='\t')
-        # remove rows with more than half of nan values
-        df_t = df_t.loc[df_t.isna().sum(axis=1) < df_t.shape[1]/2,:]
-        df = pd.concat([df,df_t],axis=0)
+    Strand = ['+', '-']
+    strand_dict = {'forward':'+',
+                    'reverse':'-',
+                    '+':'forward',
+                    '-':'reverse'}
+    CHR = [f'chr{c+1}' for c in range(0,19)] + ['chrX','chrY','chrM']
+    T = np.arange(0,48,4)
+    Samples = [f'CT{t:02d}' for t in T] 
+
+    df = pd.DataFrame(columns=['start','end'])
+    for strand in Strand:
+        for chr in CHR:
+            df_chr_strand = pd.DataFrame(columns=['start','end'])
+            for t in T:
+                sample = f'CT{t:02d}'
+                
+                fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{args.bin_size}bp.bw"
+                f = bw.open(fin)
+                df_t = pd.DataFrame(f.intervals(chr),columns=['start','end',sample])
+                df_chr_strand = pd.merge(df_chr_strand,df_t,how='outer',on=['start','end'])
+        
+            df = pd.concat([df,df_chr_strand],axis=0)
+
+    # remove chr start end strand
+    df.drop(columns=['start','end'],inplace=True)
+
+    # remove rows with more than 75% of nan values
+    df.dropna(thresh=len(T)//4,inplace=True)
+
     df.fillna(0,inplace=True)
     df = df.apply(lambda x: np.log2(x+1),axis=1)
 
     # separate mesurments at time [0-24) and [24-48)
-    x = df.loc[:,[f"CT{t:02d}{s}" for t in np.arange(0 ,24,4) for s in ['+', '-']]].values.flatten()
-    y = df.loc[:,[f"CT{t:02d}{s}" for t in np.arange(24,48,4) for s in ['+', '-']]].values.flatten()
+    x = df.loc[:,[f"CT{t:02d}" for t in np.arange(0 ,24,4) ]].values.flatten()
+    y = df.loc[:,[f"CT{t:02d}" for t in np.arange(24,48,4) ]].values.flatten()
     df_err = pd.DataFrame({'x':x,'y':y})
 
     # estimate error as the difference between the two measurements

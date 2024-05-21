@@ -15,6 +15,7 @@ outfold_bwa:                "results/bwa"
 outfold_coverage:           "results/coverage"
 outfold_norm:               "results/norm_coverage"
 outfold_binned:             "results/binned_norm_coverage"
+outfold_log:                "results/log_binned_norm_coverage"
 outfold_fig:                "results/fig"
 outfold_phase_amp:          "results/phase_amp"
 outfold_space_time_fourier: "results/space_time_fourier"
@@ -25,9 +26,9 @@ outfold_counts:             "results/counts"
 
 Species: GRCm39
 Bin_size:
-    - '100'
+    #- '100'
     - '1000'
-    - '10000'
+    #- '10000'
 
 Samples:
     - CT00
