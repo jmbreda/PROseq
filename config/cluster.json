@@ -3,7 +3,7 @@
     {
         "name" : "default_snakejob",
         "qos" : "serial",
-        "time" : "01:00:00",
+        "time" : "06:00:00",
         "mem" : "6G",
         "nodes" : 1,
         "ntasks" : 1,
