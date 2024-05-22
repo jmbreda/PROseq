@@ -9,4 +9,5 @@
 #scp -r results/kalman/Gene_Q_1e-3/* upnae:PROseq/results/kalman/Gene_Q_1e-3/
 #scp -r results/norm_coverage/ upnae:PROseq/results/
 #scp -r results/binned_norm_coverage/ upnae:PROseq/results/
-scp -r results/phase_amp upnae:PROseq/results/
+scp -r results/log_binned_norm_coverage/ upnae:PROseq/results/
+#scp -r results/phase_amp upnae:PROseq/results/
