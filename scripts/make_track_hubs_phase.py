@@ -17,7 +17,7 @@ if __name__ == '__main__':
         os.system(f'ln -s {data_folder} {link_to_data}')
     
     link_to_data = f'{track_hub_folder}/tracks_bw'
-    data_folder = f'{results_folder}/binned_norm_coverage/'
+    data_folder = f'{results_folder}/log_binned_norm_coverage/'
     if not os.path.exists(link_to_data):
         os.system(f'ln -s {data_folder} {link_to_data}')
 
@@ -93,42 +93,38 @@ if __name__ == '__main__':
             for strand in Strands:
                 fout.write(f"track PROseq_{strand}_{bin_size}bp\n")
                 fout.write("compositeTrack on\n")
-                fout.write("subGroup1 t Time 0=0 24=24 4=4 28=28 8=8 32=32 12=12 36=36 16=16 40=40 20=20 44=44\n")
+                fout.write("subGroup1 t Time CT00=00 CT04=04 CT08=08 CT12=12 CT16=16 CT20=20 CT28=28 CT24=24 CT32=32 CT36=36 CT40=40 CT44=44\n")
                 fout.write("dimensions dimX=t\n")
                 fout.write("sortOrder t=+\n")
                 #fout.write("subGroup2 s Strand forward=forward reverse=reverse\n")
                 #fout.write("dimensions dimX=s dimY=t\n")
                 #fout.write("sortOrder s=+ t=+\n")
                 fout.write(f"shortLabel PROseq {strand} {bin_size}bp\n")
-                fout.write(f"longLabel PRO-seq data composite track {strand} {bin_size}bp\n")
+                fout.write(f"longLabel PRO-seq data composite track {strand} {bin_size}bp (log2 sum normed count per bin + 1, 1bp: norm count)\n")
                 fout.write("type bigWig\n")
                 if bin_size == 1000:
                     fout.write("visibility full\n")
                 else:
                     fout.write("visibility hide\n")
-                fout.write("maxHeightPixels 100:50:8\n")
+                fout.write("maxHeightPixels 100:30:8\n") # max:default:min
                 fout.write("autoScale group\n")
                 fout.write("descriptionUrl PROseq.html\n")
                 fout.write("\n")
   
                 for sample in Samples:
                     name = sample
-                    time = int(sample[2:])
-                    if time>24:
-                        time_label = str(time-24)+"+24"
-                    else:
-                        time_label = str(time)
+                    time = sample[2:]
 
                     fout.write(f"\ttrack {name}_{strand}_{bin_size}\n")
                     fout.write(f"\tparent PROseq_{strand}_{bin_size}bp on\n")
                     #fout.write(f"\tsubGroups t={time} s={strand}\n")
-                    fout.write(f"\tsubGroups t={time}\n")
-                    fout.write(f"\tshortLabel {time_label}\n")
+                    fout.write(f"\tsubGroups t={sample}\n")
+                    fout.write(f"\tshortLabel {sample}\n")
                     fout.write(f"\tlongLabel \n")
                     if bin_size == 1:
                         fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw_unbinned/{sample}/NormCoverage_3p_{strand}.bw\n")
                     else:
-                        fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
+                        fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                     fout.write("\ttype bigWig\n")
                     if strand == 'forward':
                         fout.write("\tcolor 0,0,255\n")

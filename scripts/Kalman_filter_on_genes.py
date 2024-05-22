@@ -22,32 +22,6 @@ def parse_args():
     
     return parser.parse_args()
 
-def get_all_tables(bw_folder,bin_size):
-    
-    # Parameters
-    CHR = [f'chr{i+1}' for i in range(19)] + ['chrX','chrY','chrM']
-    Strands = ['+', '-']
-    T = np.arange(0,48,4)
-
-    df = {}
-    for chr in CHR:
-
-        df[chr] = {}
-        # read data
-        df_all = pd.read_csv(f'{bw_folder}/NormCoverage_3p_bin{bin_size}bp_{chr}.csv',index_col=0,sep='\t')
-
-        # separate by strand and remove rows with 8 or more NaNs (out of 12)
-        for strand in Strands:
-            df[chr][strand] = df_all.loc[:,[f"{t}{strand}" for t in np.arange(0,48,4)]]
-            df[chr][strand].columns = T
-            df[chr][strand].dropna(thresh=2+len(T)-8,inplace=True) # remove rows with 8 or more NaNs (out of 12)
-
-            # replace missing values with 0, add pseudocount, take the log
-            df[chr][strand].fillna(0,inplace=True)
-            df[chr][strand] = df[chr][strand].apply(lambda x: np.log(x+1/bin_size),axis=1)
-
-    return df
-
 def get_data(coord, bw_folder, bin_size):
 
     T = np.arange(0,48,4)
@@ -67,14 +41,12 @@ def get_data(coord, bw_folder, bin_size):
     df.reset_index(inplace=True,drop=True)
 
     # get positions as the middle of the bin
-    positions = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
+    positions = ( df.start.values + bin_size/2 ).astype(int) # bp
 
     # get measurments matrix (time x position)
     measurements = df.loc[:,Samples].values.T.astype(float) # time x position
     measurements[np.isnan(measurements)] = 0
     measurements = np.log2(measurements+1)
-
-    assert measurements.shape[1] == positions.shape[0]
     
     return measurements, positions
 
@@ -209,9 +181,9 @@ if __name__ == '__main__':
     out = h5py.File(args.out_hdf5,'w')
     out.create_dataset('K',data=K)
 
-    #for gene in ["Cry1","Cry2"]:
+    #for gene in ["mt-Cytb"]:
     for gene in gtf.index:
-        #print(gene)
+        print(gene)
         coord = gtf.loc[gene,['chr','start','end','strand']]
         
         COORD = f"{coord.chr}:{coord.start}:{coord.end}:{coord.strand}"
