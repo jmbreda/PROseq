@@ -26,6 +26,11 @@ if __name__ == '__main__':
     if not os.path.exists(link_to_data):
         os.system(f'ln -s {data_folder} {link_to_data}')
 
+    link_to_data = f'{track_hub_folder}/tracks_tad'
+    data_folder = f'/bigdata/jbreda/PROseq/resources/TAD/'
+    if not os.path.exists(link_to_data):
+        os.system(f'ln -s {data_folder} {link_to_data}')
+
     # make track hub
     outfile=f'{track_hub_folder}/hub.txt'
     with open(outfile,'w', encoding="utf-8") as fout:
@@ -34,7 +39,7 @@ if __name__ == '__main__':
         fout.write("longLabel PRO-seq data in mouse at times 0h-44h in steps of 4h, forward and reverse stand, with infered phase\n")
         fout.write("genomesFile genomes.txt\n")
         fout.write("email jeremie.breda@epfl.ch\n")
-        fout.write("descriptionUrl PROseq.html\n")
+        fout.write(f"descriptionUrl {track_hub_name}.html\n")
         fout.write("\n")
 
     # make genomes.txt
@@ -44,7 +49,7 @@ if __name__ == '__main__':
         fout.write(f"trackDb {genome}/trackDb.txt\n")
         fout.write("\n")
 
-    # make ChIP_Atlas.html
+    # make {track_hub_name}.html
     outfile=f'{track_hub_folder}/{track_hub_name}.html'
     with open(outfile,'w', encoding="utf-8") as fout:
         fout.write("PRO-seq data in mouse at times 0h-44h in steps of 4h\n")
@@ -63,6 +68,34 @@ if __name__ == '__main__':
     outfile=f"{track_hub_folder}/{genome}/trackDb.txt"
     with open(outfile,'w', encoding="utf-8") as fout:
 
+        p = 0
+        # Bed tracks with gene phase
+        fout.write(f"track gene_phase\n")
+        fout.write("type bigBed 9\n")
+        fout.write("itemRgb on\n")
+        fout.write(f"shortLabel Gene phase\n")
+        fout.write(f"longLabel Gene phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+        fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp.bb\n")
+        fout.write("visibility pack\n")
+        fout.write(f"priority {p}\n")
+        fout.write("\n")
+        
+        p+=1
+
+        # Bed tracks with kalman smoothing phase
+        for strand in Strands:
+            fout.write(f"track gene_kalman_smoothing_phase_{strand}\n")
+            fout.write("type bigBed 9\n")
+            fout.write("itemRgb on\n")
+            fout.write(f"shortLabel Gene kalman smoothing phase {strand}\n")
+            fout.write(f"longLabel Gene phase by kalman filter {strand} strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+            fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_kalman_phase_R2_{strand}_1000bp.bb\n")
+            fout.write("visibility dense\n")
+            fout.write(f"priority {p}\n")
+            fout.write("\n")
+
+            p+=1
+
         # Bed tracks with bin phase
         for bin_size in [100,1000,10000]:
             for strand in Strands:
@@ -70,23 +103,28 @@ if __name__ == '__main__':
                 fout.write("type bigBed 9\n")
                 fout.write("itemRgb on\n")
                 fout.write(f"shortLabel Bin phase {strand} {bin_size}bp\n")
-                fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (bordeau: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+                fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                 fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/bin_phase_amp_{strand}_{bin_size}bp.bb\n")
                 if bin_size == 1000:
                     fout.write("visibility dense\n")
                 else:
                     fout.write("visibility hide\n")
+                fout.write(f"priority {p}\n")
                 fout.write("\n")
+                p += 1
 
-        # Bed tracks with gene phase
-        fout.write(f"track gene_phase\n")
-        fout.write("type bigBed 9\n")
-        fout.write("itemRgb on\n")
-        fout.write(f"shortLabel Gene phase\n")
-        fout.write(f"longLabel Gene phase and amplitude mapped in RGB space (bordeau: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
-        fout.write(f"bigDataUrl {track_hub_url}/tracks_bb/gene_phase_amp.bb\n")
-        fout.write("visibility pack\n")
+        # Bed tracks with TADs
+        fout.write(f"track TAD\n")
+        fout.write("type bigBed 3\n")
+        #fout.write("itemRgb off\n")
+        fout.write(f"shortLabel TADs\n")
+        fout.write(f"longLabel TADs\n")
+        fout.write(f"bigDataUrl {track_hub_url}/tracks_tad/TADMap_scaffold_mm39.bb\n")
+        fout.write("visibility squish\n")
+        fout.write(f"priority {p}\n")
         fout.write("\n")
+
+        p += 1
     
         # BigWig composite tracks with bin expression
         for bin_size in [1,100,1000,10000]:
@@ -100,7 +138,7 @@ if __name__ == '__main__':
                 #fout.write("dimensions dimX=s dimY=t\n")
                 #fout.write("sortOrder s=+ t=+\n")
                 fout.write(f"shortLabel PROseq {strand} {bin_size}bp\n")
-                fout.write(f"longLabel PRO-seq data composite track {strand} {bin_size}bp (log2 sum normed count per bin + 1, 1bp: norm count)\n")
+                fout.write(f"longLabel PRO-seq data composite track {strand} {bin_size}bp (sum normed count per bin + 1, 1bp: norm count)\n")
                 fout.write("type bigWig\n")
                 if bin_size == 1000:
                     fout.write("visibility full\n")
@@ -109,7 +147,9 @@ if __name__ == '__main__':
                 fout.write("maxHeightPixels 100:30:8\n") # max:default:min
                 fout.write("autoScale group\n")
                 fout.write("descriptionUrl PROseq.html\n")
+                fout.write(f"priority {p}\n")
                 fout.write("\n")
+                p += 1
   
                 for sample in Samples:
                     name = sample
@@ -125,6 +165,7 @@ if __name__ == '__main__':
                         fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw_unbinned/{sample}/NormCoverage_3p_{strand}.bw\n")
                     else:
                         fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
+                        #fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                     fout.write("\ttype bigWig\n")
                     if strand == 'forward':
                         fout.write("\tcolor 0,0,255\n")

@@ -22,18 +22,18 @@ if __name__ == '__main__':
     
     # get bin color for bed file
     # hue: phase (0 to 1)
-    h = (df['phase'].values % (2*np.pi))/(2*np.pi)
+    #h = (df['phase'].values % (2*np.pi))/(2*np.pi)
     # saturation: amplitude (0.2 to 1)
-    s = 1 - 0.8*np.exp(-df['amplitude'].values)
+    #s = 1 - 0.8*np.exp(-df['amplitude'].values)
     # value: fit R2 (0 or 1 if R2 > .5)
     # v = np.sqrt(df['R2'].values)
-    v = np.zeros(df.shape[0])
-    v[df['R2']>0.25] = 1
+    #v = np.zeros(df.shape[0])
+    #v[df['R2']>0.25] = 1
 
     #rgb = hsv_to_rgb_v(h,s,v)
     rgb = p2lc(df['phase'].values)
-    # put bins R2 < .25 in grey
-    rgb[df['R2']<0.25,:] = np.ones(3)*0.5
+    # put bins R2 < .2 in grey
+    rgb[df['R2']<0.2,:] = np.ones(3)*0.5
 
     # create output bed file
     bed_cols = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRgb','blockCount','blockSizes','blockStarts']

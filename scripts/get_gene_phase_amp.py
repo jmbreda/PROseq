@@ -12,14 +12,17 @@ def parse_args():
     parser.add_argument('--gtf', help='Gene gtf file',type=str)
     parser.add_argument('--bed_folder', help='Input data folder', type=str)
     parser.add_argument('--out_table', help='Output phase, amplitude, expression and fit stats table', type=str)
+    parser.add_argument('--antisense', help='Look at the antisense strand', action='store_true')
     args = parser.parse_args()
     return args
-
 
 
 if __name__ == '__main__':
     
     args = parse_args()
+
+    if args.antisense:
+        print('Scaning Antisense strand of genes')
 
     # Parameters
     T = np.arange(0,48,4)
@@ -47,6 +50,7 @@ if __name__ == '__main__':
             return None
     
     gtf['gene_name'] = gtf['attribute'].apply(extract_attribute,attribute='gene_name')
+    gtf['gene_id'] = gtf['attribute'].apply(extract_attribute,attribute='gene_id')
 
     f = {}
     for t in T:
@@ -58,7 +62,6 @@ if __name__ == '__main__':
 
     # Get gene expression matrix
     X = np.zeros((gtf.shape[0],len(T)))
-    idx_expressed = np.zeros(gtf.shape[0],dtype='bool')
     for g in range(gtf.shape[0]):
         if g%1000==0:
             print(np.round(g/gtf.shape[0],2))
@@ -68,6 +71,14 @@ if __name__ == '__main__':
         start = gtf.at[g,'start']
         end = gtf.at[g,'end']
         strand = gtf.at[g,'strand']
+        if args.antisense:
+            # ignore the first 5000 bp of the gene to avoid antisense transcription at promoter
+            if strand == '+':
+                start = min(start + 5000,end-1)
+            if strand == '-':
+                end = max(end - 5000,start+1)
+
+            strand = '+' if strand == '-' else '-'
         
         # get summed count for each time point
         for j,t in enumerate(T):
@@ -75,9 +86,11 @@ if __name__ == '__main__':
             if not vals is None:
                 X[g,j] = sum([vals[i][2] for i in range(len(vals))])
     
+    # get mean expression per bp
+    count_per_bp = X.sum(axis=1)/(gtf['end']-gtf['start']).values    
 
     # log transform, add pseudo counts and average gene expression across bins
-    X = np.log(X + 1)
+    X = np.log2(X + 1)
     
     # remove overall phase and amplitude
     # df_overall = pd.read_csv(args.overall_phase_amp_table,sep='\t')
@@ -99,6 +112,8 @@ if __name__ == '__main__':
                        'R2':R2,
                        'pval':pval,
                        'mean_log_expression':mu_n,
-                       'gene_name':gtf['gene_name']
+                       'mean_count_per_bp':count_per_bp,
+                       'gene_name':gtf['gene_name'],
+                       'gene_id':gtf['gene_id']
                     })
     df.to_csv(args.out_table,index=False,header=True,sep='\t')

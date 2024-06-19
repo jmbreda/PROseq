@@ -17,6 +17,10 @@ def phase_to_labcolor( φ:float, a_f=90, b_f=80 ,a_0=10 , b_0=20, l_p=45, l_m=25
     for i in range(n):
         col = convert_color(LabColor(lab_l=L[i],lab_a=a[i],lab_b=b[i],observer=obs, illuminant=ill),sRGBColor)
         lab[i,:] = np.array(col.get_value_tuple())
-    lab = lab/lab.max(axis=0)
+
+    if np.any(lab>1):
+        for j in range(3):
+            if np.nanmax(lab[:,j])>1:
+                lab[:,j] /= np.nanmax(lab[:,j])
     
     return lab

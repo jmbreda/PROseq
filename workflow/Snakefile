@@ -52,7 +52,9 @@ rule all:
         # Phase and amplitude
         #expand(os.path.join(config['outfold_phase_amp'],"overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join(config['outfold_phase_amp'],"bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
-        #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp.bb"))
+        #os.path.join(config['outfold_phase_amp'],"gene_phase_amp.csv"),
+        #os.path.join(config['outfold_phase_amp'],"gene_antisense_phase_amp.csv")
+        #expand(os.path.join(config['outfold_phase_amp'],"gene_phase_amp.bb")),
         # Time-space Fourier
         # expand(os.path.join(config['outfold_fig'],"space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'])
         # Kalman
@@ -64,8 +66,9 @@ rule all:
         #expand(os.path.join(config['outfold_kalman'],"sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_fig'],"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size'])
         #expand(os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] ),
-        expand(os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
-        #expand(os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        expand(os.path.join(config['outfold_kalman'],"Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
+        #expand(os.path.join(config['outfold_phase_amp'],"gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
+        #expand(os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -314,7 +317,20 @@ rule chrom_size:
         """
 
 # make sure chromosome length are multiples of bin size
-#       cut -f1,2 {input.genome}.fai | awk -v bs={wildcards.bin_size} '{{print $1"\t"$2 + bs - $2 % bs}}' > {output.chrom_size}
+rule chrom_size_bin:
+    input:
+        genome=os.path.join(config['outfold_genome'],config['Species'],"genome.fa")
+    output:
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes_bin{bin_size}bp")
+    shell:
+        """
+        if [ ! $(hostname -s) == "upnaesrv1" ]; then
+            ml gcc/11.3.0 samtools
+        fi
+        samtools faidx {input.genome}
+        cut -f1,2 {input.genome}.fai | awk -v bs={wildcards.bin_size} '{{print $1"\t"$2 + bs - $2 % bs}}' > {output.chrom_size}
+        """
+        
 
 # for PRO-seq data, we only need the 3'-end of the reads. However the protocol repots reverse complement of the reads. So I take the 5'-end and flip the strand.
 rule coverage_bedgraph:
@@ -424,6 +440,8 @@ rule log2_coverage:
         """
         awk '{{print $1"\t"$2"\t"$3"\t"log($4+1)/log(2)}}' {input.bed} > {output.bed}
         """
+
+#TODO: rule log2_coverage_mean_normalized_fluct:
 
 rule log_coverage_bw:
     input:
@@ -562,6 +580,24 @@ rule gene_bed_to_bigBed:
         rm {params.tmp_sorted}
         """
 
+rule get_gene_antisense_phase_amp:
+    input:
+        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
+        bed=expand(os.path.join(config['outfold_norm'],"{sample}","NormCoverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands'])
+    output:
+        table=os.path.join(config['outfold_phase_amp'],"gene_antisense_phase_amp.csv")
+    params:
+        bed_folder=config['outfold_norm']
+    threads: 24
+    shell:
+        """
+        python scripts/get_gene_phase_amp.py --gtf {input.gtf} \
+                                             --bed_folder {params.bed_folder} \
+                                             --out_table {output.table} \
+                                             --antisense
+        """
+
+
 ##--------------------------------------##
 ##  Time-space Fourier                  ##
 ##--------------------------------------##
@@ -630,30 +666,31 @@ rule noise_model:
 rule Kalman_gene_smoothing:
     input:
         tables=expand(os.path.join(config['outfold_binned'],"{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']), # only for dependency
-        gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
-        noise_model_parameters=os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv")
+        #gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf"),
+        noise_model_parameters=os.path.join(config['outfold_binned'],"Noise_model_parameters_{bin_size}bp.csv"),
+        gene_phase_amp=os.path.join(config['outfold_phase_amp'],"gene_phase_amp.csv")
     output:
-        os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5")
+        os.path.join(config['outfold_kalman'],"Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5")
     params:
         bw_folder=config['outfold_binned']
     threads:
-        36
+        24
     shell:
         """
         python scripts/Kalman_filter_on_genes.py --bin_size {wildcards.bin_size} \
                                                  --bw_folder {params.bw_folder} \
-                                                 --gtf {input.gtf} \
                                                  --noise_model_parameters {input.noise_model_parameters} \
+                                                 --gene_phase_amp {input.gene_phase_amp} \
                                                  --out_hdf5 {output} \
                                                  --n_threads {threads}
         """
 
 rule plot_Kalman_gene_smoothing:
     input:
-        in_hdf5=os.path.join(config['outfold_kalman'],"Gene_Q_1e-3","Kalman_Smoothing_{bin_size}bp.hdf5"),
+        in_hdf5=os.path.join(config['outfold_kalman'],"Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"),
         gtf=os.path.join(config['outfold_genome'],config['Species'],"gene_protein_coding.gtf")
     output:
-        fig=os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-3","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf")
+        fig=os.path.join(config['outfold_fig'],"kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf")
     params:
         bw_folder=config['outfold_binned']
     shell:
@@ -663,6 +700,42 @@ rule plot_Kalman_gene_smoothing:
                                                --gtf {input.gtf} \
                                                --in_hdf5 {input.in_hdf5} \
                                                --out_fig {output.fig}
+        """
+
+rule Kalman_gene_smoothing_bed:
+    input:
+        in_hdf5=os.path.join(config['outfold_kalman'],"Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"),
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
+    output:
+        bed=os.path.join(config['outfold_phase_amp'],"gene_kalman_phase_R2_{strand}_{bin_size}bp.bed")
+    params:
+        strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else '',
+    threads:
+        12
+    shell:
+        """
+        python scripts/get_gene_kalman_smoothing_bed_track.py --in_kalman_hdf5 {input.in_hdf5} \
+                                                              --chrom_size {input.chrom_size} \
+                                                              --bin_size {wildcards.bin_size} \
+                                                              --strand {params.strand} \
+                                                              --out_bed {output.bed}
+        """
+
+
+rule kalman_gene_bed_to_bigBed:
+    input:
+        bed=os.path.join(config['outfold_phase_amp'],"gene_kalman_phase_R2_{strand}_{bin_size}bp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],config['Species'],"mm39.chrom.sizes")
+    output:
+        bb=os.path.join(config['outfold_phase_amp'],"gene_kalman_phase_R2_{strand}_{bin_size}bp.bb")
+    params:
+        sorted_bed = lambda wildcards: os.path.join(config['outfold_phase_amp'],f"gene_kalman_phase_R2_{wildcards.strand}_{wildcards.bin_size}bp.sorted.bed")
+    resources:
+        tmpdir = lambda wildcards: f"tmpdir/kalman_gene_bed_to_bigBed_{wildcards.strand}_{wildcards.bin_size}"
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bed} > {params.sorted_bed}
+        bedToBigBed {params.sorted_bed} {input.chrom_size} {output.bb}
         """
 
 rule Kalman_smoothing:
