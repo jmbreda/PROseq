@@ -7,24 +7,16 @@ URLs:
         gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.basic.annotation.gtf.gz"
         genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/GRCm39.primary_assembly.genome.fa.gz"
         cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.pc_transcripts.fa.gz"
+    GRCm38:
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.basic.annotation.gtf.gz"
+        genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/GRCm38.primary_assembly.genome.fa.gz"
+        cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.pc_transcripts.fa.gz"
+
 
 outfold_genome:             "resources/genome"
 outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
-outfold_bwa:                "results/bwa"
-outfold_coverage:           "results/coverage"
-outfold_norm:               "results/norm_coverage"
-outfold_binned:             "results/binned_norm_coverage"
-outfold_log:                "results/log_binned_norm_coverage"
-outfold_fig:                "results/fig"
-outfold_phase_amp:          "results/phase_amp"
-outfold_space_time_fourier: "results/space_time_fourier"
-outfold_kalman:             "results/kalman"
-# unused
-outfold_star:               "results/star"
-outfold_counts:             "results/counts"
 
-Species: GRCm39
 Bin_size:
     #- '100'
     - '1000'

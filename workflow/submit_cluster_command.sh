@@ -11,8 +11,8 @@ snakemake -s workflow/Snakefile \
                             --ntasks {cluster.ntasks} \
                             --cpus-per-task {cluster.cpus-per-task} \
                             --output {cluster.stdout} \
-                            --error {cluster.stderr}" \
-                            --rulegraph | dot -Tpdf > workflow/rulegraph.pdf
+                            --error {cluster.stderr}"
+                            # --rulegraph | dot -Tpdf > workflow/rulegraph.pdf
                             # --dag | dot -Tpdf > workflow/dag.pdf
                             
                             
