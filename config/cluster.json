@@ -42,7 +42,7 @@
         "name" : "bwa_aln_se",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
-        "mem" : "10G"
+        "mem" : "20G"
     },
 
     "bwa_samse" :
@@ -50,7 +50,7 @@
         "name" : "bwa_samse",
         "time" : "48:00:00",
         "cpus-per-task" : 1,
-        "mem" : "10G"
+        "mem" : "20G"
     },
 
     "mapped_uniq_MAPQ_sorted_se" :
@@ -58,7 +58,7 @@
         "name" : "mapped_uniq_MAPQ_se",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
-        "mem" : "60G"
+        "mem" : "80G"
     },
 
     "bwa_aln_pe" :
@@ -66,7 +66,7 @@
         "name" : "bwa_aln_pe",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
-        "mem" : "10G"
+        "mem" : "80G"
     },
 
     "bwa_sampe" :
@@ -82,7 +82,7 @@
         "name" : "mapped_uniq_MAPQ_close_mates_sorted_pe",
         "time" : "24:00:00",
         "cpus-per-task" : 12,
-        "mem" : "48G"
+        "mem" : "80G"
     },
 
     "merge_bam" :
