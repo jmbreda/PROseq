@@ -1,0 +1,397 @@
+track gene_phase
+type bigBed 9
+itemRgb on
+shortLabel Gene phase
+longLabel Gene phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/gene_phase_amp.bb
+visibility pack
+priority 0
+
+track gene_kalman_smoothing_phase_forward
+type bigBed 9
+itemRgb on
+shortLabel Gene kalman smoothing phase forward
+longLabel Gene phase by kalman filter forward strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/gene_kalman_phase_R2_forward_1000bp.bb
+visibility dense
+priority 1
+
+track gene_kalman_smoothing_phase_reverse
+type bigBed 9
+itemRgb on
+shortLabel Gene kalman smoothing phase reverse
+longLabel Gene phase by kalman filter reverse strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/gene_kalman_phase_R2_reverse_1000bp.bb
+visibility dense
+priority 2
+
+track bin_phase_100_forward
+type bigBed 9
+itemRgb on
+shortLabel Bin phase forward 100bp
+longLabel forward bin 100bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_forward_100bp.bb
+visibility hide
+priority 3
+
+track bin_phase_100_reverse
+type bigBed 9
+itemRgb on
+shortLabel Bin phase reverse 100bp
+longLabel reverse bin 100bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_reverse_100bp.bb
+visibility hide
+priority 4
+
+track bin_phase_1000_forward
+type bigBed 9
+itemRgb on
+shortLabel Bin phase forward 1000bp
+longLabel forward bin 1000bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_forward_1000bp.bb
+visibility dense
+priority 5
+
+track bin_phase_1000_reverse
+type bigBed 9
+itemRgb on
+shortLabel Bin phase reverse 1000bp
+longLabel reverse bin 1000bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_reverse_1000bp.bb
+visibility dense
+priority 6
+
+track bin_phase_10000_forward
+type bigBed 9
+itemRgb on
+shortLabel Bin phase forward 10000bp
+longLabel forward bin 10000bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_forward_10000bp.bb
+visibility hide
+priority 7
+
+track bin_phase_10000_reverse
+type bigBed 9
+itemRgb on
+shortLabel Bin phase reverse 10000bp
+longLabel reverse bin 10000bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)
+bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bb/bin_phase_amp_reverse_10000bp.bb
+visibility hide
+priority 8
+
+track PROseq_forward_1000bp
+compositeTrack on
+subGroup1 t Time CT00=00 CT04=04 CT08=08 CT12=12 CT16=16 CT20=20 CT28=28 CT24=24 CT32=32 CT36=36 CT40=40 CT44=44
+dimensions dimX=t
+sortOrder t=+
+shortLabel PROseq forward 1000bp
+longLabel PRO-seq data composite track forward 1000bp (sum normed count per bin + 1, 1bp: norm count)
+type bigWig
+visibility full
+maxHeightPixels 100:30:8
+autoScale group
+descriptionUrl PROseq.html
+priority 10
+
+	track CT00_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT00
+	shortLabel CT00
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT00/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT00_forward.html
+
+	track CT04_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT04
+	shortLabel CT04
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT04/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT04_forward.html
+
+	track CT08_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT08
+	shortLabel CT08
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT08/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT08_forward.html
+
+	track CT12_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT12
+	shortLabel CT12
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT12/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT12_forward.html
+
+	track CT16_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT16
+	shortLabel CT16
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT16/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT16_forward.html
+
+	track CT20_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT20
+	shortLabel CT20
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT20/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT20_forward.html
+
+	track CT24_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT24
+	shortLabel CT24
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT24/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT24_forward.html
+
+	track CT28_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT28
+	shortLabel CT28
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT28/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT28_forward.html
+
+	track CT32_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT32
+	shortLabel CT32
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT32/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT32_forward.html
+
+	track CT36_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT36
+	shortLabel CT36
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT36/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT36_forward.html
+
+	track CT40_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT40
+	shortLabel CT40
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT40/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT40_forward.html
+
+	track CT44_forward_1000
+	parent PROseq_forward_1000bp on
+	subGroups t=CT44
+	shortLabel CT44
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT44/NormCoverage_3p_forward_bin1000bp.bw
+	type bigWig
+	color 0,0,255
+	negateValues off
+	minLimit 0
+	descriptionUrl mm10/CT44_forward.html
+
+track PROseq_reverse_1000bp
+compositeTrack on
+subGroup1 t Time CT00=00 CT04=04 CT08=08 CT12=12 CT16=16 CT20=20 CT28=28 CT24=24 CT32=32 CT36=36 CT40=40 CT44=44
+dimensions dimX=t
+sortOrder t=+
+shortLabel PROseq reverse 1000bp
+longLabel PRO-seq data composite track reverse 1000bp (sum normed count per bin + 1, 1bp: norm count)
+type bigWig
+visibility full
+maxHeightPixels 100:30:8
+autoScale group
+descriptionUrl PROseq.html
+priority 11
+
+	track CT00_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT00
+	shortLabel CT00
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT00/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT00_reverse.html
+
+	track CT04_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT04
+	shortLabel CT04
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT04/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT04_reverse.html
+
+	track CT08_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT08
+	shortLabel CT08
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT08/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT08_reverse.html
+
+	track CT12_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT12
+	shortLabel CT12
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT12/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT12_reverse.html
+
+	track CT16_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT16
+	shortLabel CT16
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT16/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT16_reverse.html
+
+	track CT20_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT20
+	shortLabel CT20
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT20/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT20_reverse.html
+
+	track CT24_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT24
+	shortLabel CT24
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT24/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT24_reverse.html
+
+	track CT28_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT28
+	shortLabel CT28
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT28/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT28_reverse.html
+
+	track CT32_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT32
+	shortLabel CT32
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT32/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT32_reverse.html
+
+	track CT36_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT36
+	shortLabel CT36
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT36/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT36_reverse.html
+
+	track CT40_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT40
+	shortLabel CT40
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT40/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT40_reverse.html
+
+	track CT44_reverse_1000
+	parent PROseq_reverse_1000bp on
+	subGroups t=CT44
+	shortLabel CT44
+	longLabel 
+	bigDataUrl https://sv-open.epfl.ch/upnae-public/PROseq/tracks_bw/CT44/NormCoverage_3p_reverse_bin1000bp.bw
+	type bigWig
+	color 255,0,0
+	negateValues on
+	maxLimit 0
+	descriptionUrl mm10/CT44_reverse.html
+

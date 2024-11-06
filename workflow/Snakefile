@@ -441,8 +441,6 @@ rule log2_coverage:
         awk '{{print $1"\t"$2"\t"$3"\t"log($4+1)/log(2)}}' {input.bed} > {output.bed}
         """
 
-#TODO: rule log2_coverage_mean_normalized_fluct:
-
 rule log_coverage_bw:
     input:
         bed=os.path.join(config['outfold_log'],"{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph"),

@@ -1,0 +1,7 @@
+hub PROseq
+shortLabel PROseq
+longLabel PRO-seq data in mouse at times 0h-44h in steps of 4h, forward and reverse stand, with infered phase
+genomesFile genomes.txt
+email jeremie.breda@epfl.ch
+descriptionUrl PROseq.html
+
