@@ -427,6 +427,10 @@ rule binned_norm_coverage_bw:
         rm {params.tmp_sorted}
         """
 
+rule gene_expression_table:
+    input:
+        bedgraph=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph")
+
 rule log2_coverage:
     input:
         bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph")
@@ -778,10 +782,6 @@ rule plot_time_space_fourier_transform:
                                                             --outfig {output.fig} \
                                                             --chr {wildcards.chr}       
         """
-
-
-
-
 
 
 ##--------------------------------------##

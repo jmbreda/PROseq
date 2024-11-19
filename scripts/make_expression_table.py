@@ -27,7 +27,7 @@ if __name__ == '__main__':
     for strand in Strands:
         df[strand] = pd.DataFrame(columns=['start','end'])
         for t in T:
-            sample = f'CT{t:02d}' # Run2
+            sample = f'CT{t:02d}'
             fin = f'{args.bw_folder}/{sample}/NormCoverage_3p_{strand}_bin{args.bin_size}bp.bedgraph'
 
             df_t = pd.read_csv(fin,sep='\t',header=None)
