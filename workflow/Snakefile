@@ -21,8 +21,8 @@ def get_bam_files_per_sample(wildcards,Species):
 
 configfile: "config/config.yaml"
 
-Species = 'GRCm39'
-#Species = 'GRCm38'
+#Species = 'GRCm39'
+Species = 'GRCm38'
 
 wildcard_constraints:
     file_se="|".join(config['Fastq_Files']['SE']),
@@ -30,7 +30,8 @@ wildcard_constraints:
     file="|".join(config['Fastq_Files']['PE']+config['Fastq_Files']['SE']),
     sample="|".join(config['Samples']),
     strand="|".join(config['Strands']),
-    bin_size="|".join(config['Bin_size'])
+    bin_size="|".join(config['Bin_size']),
+    chr="|".join(config['Chromosomes'])
 
 Reads = ['R1','R2']
 
@@ -51,26 +52,25 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        #os.path.join("results",Species,"binned_norm_coverage","bin_expression_table_chr19_forward_bin1000bp.csv"),
+        expand(os.path.join("results",Species,"binned_norm_coverage","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),        
-        os.path.join("results",Species,"phase_amp","gene_phase_amp.bb"),
-        os.path.join("results",Species,"phase_amp","gene_antisense_phase_amp.csv"),
+        #os.path.join("results",Species,"phase_amp","gene_phase_amp.bb"),
+        #os.path.join("results",Species,"phase_amp","gene_antisense_phase_amp.csv"),
         # Kalman
         #expand(os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] ),
         #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
+        #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
         # Time-space Fourier
-        # expand(os.path.join("results",Species,"fig","space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes']['GRCm39'])
-        #expand(os.path.join("results",Species,"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"kalman","mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"kalman","sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"kalman","mu_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"kalman","sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['Test'],bin_size=config['Bin_size'])
-        #expand(os.path.join("results",Species,"fig","kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']['GRCm39'],bin_size=config['Bin_size'])
+        # expand(os.path.join("results",Species,"fig","space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes'])
+        #expand(os.path.join("results",Species,"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"kalman","mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"kalman","sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"fig","kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size'])
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -412,6 +412,43 @@ rule bin_coverage:
         bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
         """
 
+
+rule bin_expression_table:
+    input:
+        bedgraphs=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{{strand}}_bin{{bin_size}}bp.bedgraph"), sample=config['Samples']),
+    output:
+        table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_{chr}_{strand}_bin{bin_size}bp.csv")
+    shell:
+        """
+        python scripts/make_expression_table_chr_strand.py --chr {wildcards.chr} \
+                                                           --bedgraphs {input.bedgraphs} \
+                                                           --output {output.table}
+        """
+
+rule bin_expression_table_merge_strands:
+    input:
+        forward_table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_{chr}_forward_bin{bin_size}bp.csv"),
+        reverse_table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_{chr}_reverse_bin{bin_size}bp.csv")
+    output:
+        table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_{chr}_bin{bin_size}bp.csv")
+    shell:
+        """
+        python scripts/make_expression_table_chr.py --forward_table {input.forward_table} \
+                                                    --reverse_table {input.reverse_table} \
+                                                    --output {output.table}
+        """
+
+rule bin_expression_table_merge_chr:
+    input:
+        tables=expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_{chr}_bin{{bin_size}}bp.csv"),chr=config['Chromosomes'])
+    output:
+        table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv")
+    shell:
+        """
+        python scripts/make_expression_table.py --chr_tables {input.tables} \
+                                                --output {output.table}
+        """
+
 rule binned_norm_coverage_bw:
     input:
         bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph"),
@@ -427,9 +464,6 @@ rule binned_norm_coverage_bw:
         rm {params.tmp_sorted}
         """
 
-rule gene_expression_table:
-    input:
-        bedgraph=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph")
 
 rule log2_coverage:
     input:
@@ -479,7 +513,7 @@ rule get_overall_phase_amp:
     
 rule get_bin_phase_amp:
     input:
-        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{{strand}}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands'])
+        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{{strand}}_bin{{bin_size}}bp.bw"), sample=config['Samples'])
     output:
         table=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.csv")
     params:
