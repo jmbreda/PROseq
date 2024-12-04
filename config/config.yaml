@@ -148,3 +148,8 @@ Kalman:
         - 500_000
     d_win:
         - 250_000
+
+Expressed_regions:
+    smooth_window: 1000
+    threshold_expressed_regions: 2
+    threshold_small_regions: 10_000

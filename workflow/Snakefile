@@ -52,8 +52,9 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
-        #os.path.join("results",Species,"binned_norm_coverage","bin_expression_table_chr19_forward_bin1000bp.csv"),
-        expand(os.path.join("results",Species,"binned_norm_coverage","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
@@ -447,6 +448,35 @@ rule bin_expression_table_merge_chr:
         """
         python scripts/make_expression_table.py --chr_tables {input.tables} \
                                                 --output {output.table}
+        """
+
+rule expressed_regions:
+    input:
+        expression_table=os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv")
+    params:
+        smooth_window =               config['Expressed_regions']['smooth_window'],
+        threshold_expressed_regions = config['Expressed_regions']['threshold_expressed_regions'],
+        threshold_small_regions =     config['Expressed_regions']['threshold_small_regions']
+    output:
+        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv")
+    shell:
+        """
+        python scripts/get_expressed_regions.py --expression_table {input.expression_table} \
+                                                --bin_size {wildcards.bin_size} \
+                                                --smooth_window {params.smooth_window} \
+                                                --threshold_expressed_regions {params.threshold_expressed_regions} \
+                                                --threshold_small_regions {params.threshold_small_regions} \
+                                                --expressed_regions {output.expressed_regions}
+        """
+
+rule expressed_regions_bed:
+    input:
+        csv=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv")
+    output:
+        bed=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed")
+    shell:
+        """
+        tail -n +2 {input.csv} | cut -f-3 > {output.bed}
         """
 
 rule binned_norm_coverage_bw:
