@@ -52,9 +52,10 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
@@ -477,6 +478,23 @@ rule expressed_regions_bed:
     shell:
         """
         tail -n +2 {input.csv} | cut -f-3 > {output.bed}
+        """
+
+rule expressed_regions_bed_to_bigBed:
+    input:
+        bed=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bb=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb")
+    params:
+        tmp_sorted=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.sorted.bed")
+    resources:
+        tmpdir = lambda wildcards: f"tmpdir/expressed_regions_bed_to_bigBed_{wildcards.bin_size}"
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
         """
 
 rule binned_norm_coverage_bw:
