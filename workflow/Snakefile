@@ -52,9 +52,9 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
@@ -66,6 +66,9 @@ rule all:
         #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size']),
         # Time-space Fourier
         # expand(os.path.join("results",Species,"fig","space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes'])
         #expand(os.path.join("results",Species,"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']bin_size=config['Bin_size']),
@@ -682,15 +685,13 @@ rule noise_model:
 rule Kalman_gene_smoothing:
     input:
         tables=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']), # only for dependency
-        #gtf=os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf"),
         noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"),
         gene_phase_amp=os.path.join("results",Species,"phase_amp","gene_phase_amp.csv")
     output:
         os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5")
     params:
         bw_folder=os.path.join("results",Species,"binned_norm_coverage")
-    threads:
-        24
+    threads: 24
     shell:
         """
         python scripts/Kalman_filter_on_genes.py --bin_size {wildcards.bin_size} \
@@ -802,6 +803,74 @@ rule plot_Kalman_smoothing:
                                              --in_sigma {input.sigma} \
                                              --in_r2 {input.r2} \
                                              --out_ll {output.fig}
+        """
+
+
+rule extended_kalman_on_expressed_regions:
+    input:
+        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),
+        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv")
+    params:
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+    output:
+        table=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"),
+    threads: 72
+    shell:
+        """
+        python scripts/extended_kalman_on_expressed_regions.py --bin_size {wildcards.bin_size} \
+                                                               --expressed_regions {input.expressed_regions} \
+                                                               --noise_model {input.noise_model_parameters} \
+                                                               --bw_folder {params.bw_folder} \
+                                                               --out_table {output.table} \
+                                                               --threads {threads}
+        """
+
+rule extended_kalman_bed:
+    input:
+        kalman=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"),
+        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed")
+    output:
+        bed_phi=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bed"),
+        bed_ll=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bedgraph")
+    params:
+        strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else ''
+    shell:
+        """
+        python scripts/extended_kalman_bed_tracks.py --kalman_table {input.kalman} \
+                                                     --expressed_regions {input.expressed_regions} \
+                                                     --strand {params.strand} \
+                                                     --out_bed_phase_amp {output.bed_phi} \
+                                                     --out_bed_ll {output.bed_ll}
+        """
+
+rule extended_kalman_phi_amp_bb:
+    input:
+        bed=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bb=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bb"),
+    params:
+        tmp_sorted=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.sorted.bed")
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
+        """
+
+rule extended_kalman_ll_bw:
+    input:
+        bg=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bedgraph"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bw=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bw")
+    params:
+        tmp_sorted=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.sorted.bedgraph")
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bg} > {params.tmp_sorted}
+        bedGraphToBigWig {params.tmp_sorted} {input.chrom_size} {output.bw}
+        rm {params.tmp_sorted}
         """
 
 ##--------------------------------------##

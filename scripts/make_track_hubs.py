@@ -102,6 +102,64 @@ if __name__ == '__main__':
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
+
+            # Bed tracks with expressed regions
+            for bin_size in [1000]:#[100,1000,10000]:
+                fout.write(f"track expressed_regions_{bin_size}\n")
+                fout.write("type bigBed 3\n")
+                #fout.write("itemRgb on\n")
+                fout.write(f"shortLabel Expressed regions {bin_size}bp\n")
+                fout.write(f"longLabel bin {bin_size}bp Expressed regions\n")
+                fout.write(f"bigDataUrl {track_folder}/binned_norm_coverage/expressed_regions_bin{bin_size}bp.bb\n")
+                if bin_size == 1000:
+                    fout.write("visibility dense\n")
+                else:
+                    fout.write("visibility hide\n")
+                fout.write(f"priority {p}\n")
+                fout.write("\n")
+                p += 1
+
+            # bed tracks with extended kalman smoothing phase and amp on expressed regions
+            for bin_size in [1000]:#[100,1000,10000]:
+                for strand in Strands:
+                    fout.write(f"track kalman_expressed_regions_phase_amp_{strand}_{bin_size}\n")
+                    fout.write("type bigBed 9\n")
+                    fout.write("itemRgb on\n")
+                    fout.write(f"shortLabel Kalman expressed regions phi amp {strand} {bin_size}bp\n")
+                    fout.write(f"longLabel Extended Kalman smoothing phase and amplitude on expressed regions {strand} strand {bin_size}bp\n")
+                    fout.write(f"bigDataUrl {track_folder}/kalman/extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bb\n")
+                    if bin_size == 1000:
+                        fout.write("visibility dense\n")
+                    else:
+                        fout.write("visibility hide\n")
+                    fout.write(f"priority {p}\n")
+                    fout.write("\n")
+                    p += 1
+
+            # bed tracks with extended kalman smoothing loglikelihood (transformed in 0-1000 range) on expressed regions
+            for bin_size in [1000]:#[100,1000,10000]:
+                for strand in Strands:
+                    fout.write(f"track kalman_expressed_regions_ll_{strand}_{bin_size}\n")
+                    fout.write("type bigWig\n")
+                    fout.write("itemRgb on\n")
+                    fout.write(f"shortLabel Kalman expressed regions ll {strand} {bin_size}bp\n")
+                    fout.write(f"longLabel Extended Kalman smoothing on expressed regions {strand} strand {bin_size}bp\n")
+                    fout.write(f"bigDataUrl {track_folder}/kalman/extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bw\n")
+                    if bin_size == 1000:
+                        fout.write("visibility dense\n")
+                    else:
+                        fout.write("visibility hide\n")
+                    if strand == 'forward':
+                        fout.write("\tcolor 0,0,255\n")
+                    elif strand == 'reverse':
+                        fout.write("\tcolor 255,0,0\n")
+                    fout.write("autoScale on\n")
+                    fout.write("\tminLimit 0\n")
+                    fout.write("maxHeightPixels 100:30:8\n") # max:default:min
+                    fout.write(f"priority {p}\n")
+                    fout.write("\n")
+                    p += 1
+
         
             # BigWig composite tracks with bin expression
             for bin_size in [1000]:#[1,100,1000,10000]:
