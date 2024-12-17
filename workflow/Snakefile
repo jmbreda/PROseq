@@ -482,6 +482,23 @@ rule expressed_regions_bed:
         tail -n +2 {input.csv} | cut -f-3 > {output.bed}
         """
 
+rule expressed_regions_bed_to_bigBed:
+    input:
+        bed=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bb=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb")
+    params:
+        tmp_sorted=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.sorted.bed")
+    resources:
+        tmpdir = lambda wildcards: f"tmpdir/expressed_regions_bed_to_bigBed_{wildcards.bin_size}"
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
+        """
+
 rule binned_norm_coverage_bw:
     input:
         bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph"),
