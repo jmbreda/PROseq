@@ -124,6 +124,7 @@ def get_kf_parameters(bin_size):
     v_mean = 34 # [bp/s]
     #k_mean = (ω/3600)/v_mean # [rad/bp]
     k_mean = -(ω/3600)/(v_mean/1e3) # [rad/kb]
+    # minus sign because the rotation is defined clockwise whereas the positive sign is in the trigonometric direction
 
     # dynamics of the process z(t) = a(t) + ib(t)
     sigma_z = 1e-3 # variance the process ( z(x) = a(x) + ib(x) ) [kb]
@@ -160,6 +161,8 @@ def get_kf_parameters(bin_size):
 
     return params
 
+def is_invertible(a):
+    return a.shape[0] == a.shape[1] and np.linalg.matrix_rank(a) == a.shape[0]
 
 def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
 
@@ -169,8 +172,6 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
     m = kf_parameters['m']
     n = kf_parameters['n']
     dx = kf_parameters['dx']
-    v_mean = kf_parameters['v_mean']
-    k_mean = kf_parameters['k_mean']
     sigma_z = kf_parameters['sigma_z']
     gamma_k = kf_parameters['gamma_k']
     k_mu = kf_parameters['k_mu']
@@ -182,7 +183,7 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
 
     # Process noise covariance matrix
     Q = np.eye(n)*(sigma_z)**2
-    #Q[2,2] = sigma_k**2  # Variance of k(t)
+    #Q[2,2]     = sigma_k**2  # Variance of k(t)
     #Q[3,3] = sigma_l**2  # Variance of λ(t)
     Q[2,2] = eps_k*eps_k # Variance of k(t)
     Q[3,3] = eps_l*eps_l  # Variance of λ(t)
@@ -218,7 +219,7 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
         r_i = Noise_params['a'] * np.exp(-Noise_params['b'] * R2[i]*measurments[:,i] ) + Noise_params['c']
         r_i[measurments[:,i] < Noise_params['m_err_max']] = Noise_params['err_max']
         R[i,:,:] = np.diag(r_i)
-    #R *= 1
+    R *= 2
 
     # EKF implementation
     # Initial state estimate and covariance
@@ -254,24 +255,35 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
         # Update
         H = H_jacobian(x_pred[k],ω,T)
         S = np.linalg.multi_dot([H,P_pred[k].reshape((n,n)),H.T]) + R[k]
-        K = np.linalg.multi_dot([P_pred[k].reshape((n,n)), H.T, np.linalg.inv(S)])
+        if not is_invertible(S):
+            print(k,coord)
+            K = np.zeros((n,m))
+        else:
+            K = np.linalg.multi_dot([P_pred[k].reshape((n,n)), H.T, np.linalg.inv(S)])
         res = X[:, k] - h(x_pred[k],ω,T)
         x_est[k] = x_pred[k] + K @ (res)
         P_est[k] = ( (np.eye(n) - K @ H) @ P_pred[k].reshape((n,n)) ).flatten()
         
         # Log likelihood
-        LL[k] = -0.5 * ( np.linalg.multi_dot([res.T, np.linalg.inv(S), res]) + np.log(np.linalg.det(S)) + m * np.log(2*np.pi) )
+        if not is_invertible(S):
+            LL[k] = np.nan
+        else:
+            LL[k] = -0.5 * ( np.linalg.multi_dot([res.T, np.linalg.inv(S), res]) + np.log(np.linalg.det(S)) + m * np.log(2*np.pi) )
 
     # Backward smoother
-    x_smooth = np.zeros((N_bins,x0.shape[0]))
-    P_smooth = np.zeros((N_bins,P0.shape[0]))
-    x_smooth[-1] = x_est[-1]
-    P_smooth[-1] = P_est[-1]
-    for k in range(N_bins-2,-1,-1):
-        F = F_jacobian(x_est[k], gamma_k, gamma_l)
-        J = np.linalg.multi_dot([P_est[k].reshape((n,n)), F.T, np.linalg.inv(P_pred[k+1].reshape((n,n)))])
-        x_smooth[k] = x_est[k] + J @ (x_smooth[k+1] - x_pred[k+1])
-        P_smooth[k] = ( P_est[k].reshape((n,n)) + J @ (P_smooth[k+1].reshape((n,n)) - P_pred[k+1].reshape((n,n))) @ J.T ).flatten()
+    #x_smooth = np.zeros((N_bins,x0.shape[0]))
+    #P_smooth = np.zeros((N_bins,P0.shape[0]))
+    #x_smooth[-1] = x_est[-1]
+    #P_smooth[-1] = P_est[-1]
+    #for k in range(N_bins-2,-1,-1):
+    #    F = F_jacobian(x_est[k], gamma_k, gamma_l)
+    #    if not is_invertible(P_pred[k+1].reshape((n,n))):
+    #        print(k,coord)
+    #        J = np.zeros((n,n))
+    #    else:
+    #        J = np.linalg.multi_dot([P_est[k].reshape((n,n)), F.T, np.linalg.inv(P_pred[k+1].reshape((n,n)))])
+    #    x_smooth[k] = x_est[k] + J @ (x_smooth[k+1] - x_pred[k+1])
+    #    P_smooth[k] = ( P_est[k].reshape((n,n)) + J @ (P_smooth[k+1].reshape((n,n)) - P_pred[k+1].reshape((n,n))) @ J.T ).flatten()
 
     #z_est = h(x_est.T,ω,T)
     #P_est = P_est.reshape((N_bins,n,n))
@@ -287,7 +299,9 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
 
     # reflip if strand is '-'
     if strand == '-':
-        x_smooth = x_smooth[::-1]
+        #x_smooth = x_smooth[::-1]
+        x_est = x_est[::-1]
+
         LL = LL[::-1]
 
     # Save results in a dataframe
@@ -297,7 +311,7 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
     df.end = ends
     df.chr = chr
     df.strand = strand
-    df.loc[:,['a','b','k','λ']] = x_smooth
+    df.loc[:,['a','b','k','λ']] = x_est
     df.LL = LL
 
     return df

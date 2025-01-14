@@ -66,7 +66,7 @@ rule all:
         #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
-        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
         expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size']),
         expand(os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size']),
         # Time-space Fourier
@@ -844,8 +844,7 @@ rule extended_kalman_on_expressed_regions:
 
 rule extended_kalman_bed:
     input:
-        kalman=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"),
-        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed")
+        kalman=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv")
     output:
         bed_phi=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_phi_amp.bed"),
         bed_ll=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_{strand}_bin{bin_size}bp_ll.bedgraph")
@@ -854,7 +853,6 @@ rule extended_kalman_bed:
     shell:
         """
         python scripts/extended_kalman_bed_tracks.py --kalman_table {input.kalman} \
-                                                     --expressed_regions {input.expressed_regions} \
                                                      --strand {params.strand} \
                                                      --out_bed_phase_amp {output.bed_phi} \
                                                      --out_bed_ll {output.bed_ll}

@@ -10,9 +10,6 @@ def parse_args():
     parser.add_argument('--kalman_table',
                         help='Imput table: extended kalman result table (chr, start, end, strand, a, b, k, lambda, LL)',
                         type=str)
-    parser.add_argument('--expressed_regions',
-                        help='bed file (rows: genomic position | cols: chr, start, end) no header',
-                        type=str)
     parser.add_argument('--strand',
                         choices=['+','-'],
                         help='strand',
@@ -41,10 +38,6 @@ if __name__ == '__main__':
     φ = -np.arctan2(kalman['b'].values,kalman['a'].values)
     rgb = p2lc(φ)
 
-    # get expressed regions from bed file
-    expressed_regions = pd.read_csv(args.expressed_regions,sep='\t',header=None)
-    expressed_regions.columns = ['chr','start','end']
-
     # bed phase
     # initialize bed file (9 cols)
     bed_cols = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRgb']
@@ -67,8 +60,16 @@ if __name__ == '__main__':
     # save bed files
     bed_phi.to_csv(args.out_bed_phase_amp,sep='\t',header=False,index=False)
 
-    # put min LL to 0
-    kalman['LL'] -= np.median(kalman['LL'])
+    # fix LL values
+    # 1) remove extreme values
+    ll_q_1e5 = kalman['LL'].quantile(1e-5)
+    kalman.loc[ kalman['LL'] < ll_q_1e5, 'LL'] = ll_q_1e5
+
+    # 2) put nan values to min
+    kalman['LL'].fillna(ll_q_1e5,inplace=True)
+
+    # 3) put median LL to 0
+    # kalman['LL'] -= np.median(kalman['LL'])
     
     # save bedgraph file (4 cols)
     kalman[['chr','start','end','LL']].to_csv(args.out_bed_ll,sep='\t',header=False,index=False)
