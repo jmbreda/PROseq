@@ -79,7 +79,8 @@ if __name__ == '__main__':
     # v[df['R2']>.10] = 1
     #rgb = hsv_to_rgb_v(h,s,v)
     
-    rgb = p2lc(df['phase'].values)
+    threshold_amp = .5
+    rgb = p2lc(df['phase'].values,df['amplitude'].values,threshold_amp)
     # put bins pval > .1 in grey
     #idx_pval = df['pval'] > .05
     #rgb[idx_pval,:] = np.ones(3)*0.5

@@ -36,7 +36,8 @@ if __name__ == '__main__':
     μ = kalman['a'].values + 1j*kalman['b'].values
     amp = 4/m * np.abs(μ)
     φ = -np.arctan2(kalman['b'].values,kalman['a'].values)
-    rgb = p2lc(φ)
+    threshold_amp = 1
+    rgb = p2lc(φ,amp,threshold_amp)
 
     # bed phase
     # initialize bed file (9 cols)
@@ -66,10 +67,10 @@ if __name__ == '__main__':
     kalman.loc[ kalman['LL'] < ll_q_1e5, 'LL'] = ll_q_1e5
 
     # 2) put nan values to min
-    kalman['LL'].fillna(ll_q_1e5,inplace=True)
+    kalman.loc[ np.isnan(kalman['LL']), 'LL'] = ll_q_1e5
 
-    # 3) put median LL to 0
-    # kalman['LL'] -= np.median(kalman['LL'])
+    # 3) put min LL to 0
+    kalman['LL'] -= np.min(kalman['LL'])
     
     # save bedgraph file (4 cols)
     kalman[['chr','start','end','LL']].to_csv(args.out_bed_ll,sep='\t',header=False,index=False)

@@ -19,8 +19,8 @@ outfold_fastq_trimmed:      "resources/fastq_trimmed"
 
 Bin_size:
     #- '100'
-    - '1000'
-    #- '10000'
+    #- '1000'
+    - '10000'
 
 Samples:
     - CT00
@@ -153,3 +153,8 @@ Expressed_regions:
     smooth_window: 1000
     threshold_expressed_regions: 2
     threshold_small_regions: 10_000
+
+Extended_kalman:
+    Genomic_regions:
+        - expressed_regions
+        - chromosomes
