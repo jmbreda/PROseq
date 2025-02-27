@@ -45,7 +45,11 @@ wildcard_constraints:
     strand="|".join(config['Strands']),
     bin_size="|".join(config['Bin_size']),
     chr="|".join(config['Chromosomes']),
+<<<<<<< HEAD
     reads = "|".join(['R1','R2'])
+=======
+    region="|".join(config['Extended_kalman']['Genomic_regions'])
+>>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
 
 Reads = ['R1','R2']
 
@@ -73,6 +77,7 @@ rule all:
         # coverage
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
@@ -83,13 +88,19 @@ rule all:
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),        
-        #os.path.join("results",Species,"phase_amp","gene_phase_amp.bb"),
+        #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
+        #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
+        #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bb"), strand=config['Strands']),
         #os.path.join("results",Species,"phase_amp","gene_antisense_phase_amp.csv"),
         # Kalman
         #expand(os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] ),
         #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        expand(os.path.join("results",Species,"kalman","average_LL_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
         # Time-space Fourier
         # expand(os.path.join("results",Species,"fig","space_time_fourier","Bins_{bin_size}bp_sigma_{sigma}Mb","{chr}_amp_pos_k.pdf"),bin_size=config['Bin_size'],sigma=config['Space_Time_Fourier']['sigma_Mb'],chr=config['Chromosomes'])
         #expand(os.path.join("results",Species,"kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.csv"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes']bin_size=config['Bin_size']),
@@ -207,7 +218,17 @@ rule bwa_index:
         bwa_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt")
     shell:
         """
+<<<<<<< HEAD
         bwa index {input.genome}
+=======
+        if [ ! $(hostname -s) == "haas005" ]; then
+            ml gcc/11.3.0 samtools
+        fi
+        samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
+            awk '$1 ~ /^@/ || $2 == "16" || $2 == "0"' |\
+            grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
+            samtools sort -@ {threads} -m {params.mem} > {output.bam}
+>>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
         """
 
 ##------------------##
@@ -458,14 +479,14 @@ rule make_bin_bed:
         python scripts/make_bins.py --chrom_size {input.chrom_size} --bin_size {wildcards.bin_size} --output {output.bed}
         """
 
-rule bin_coverage:
+rule bin_coverage_1K:
     input:
         bed=os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bedgraph"),
-        bins=os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed")
+        bins=os.path.join("results",Species,"binned_norm_coverage","bin1000bp.bed")
     output:
-        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph")
+        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin1000bp.bedgraph")
     resources:
-        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_{wildcards.bin_size}"
+        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_1000"
     shell:
         """
         if [ ! $(hostname -s) == "haas005" ]; then
@@ -474,6 +495,22 @@ rule bin_coverage:
         bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
         """
 
+rule bin_coverage_10K:
+    input:
+        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin1000bp.bedgraph"),
+        bins=os.path.join("results",Species,"binned_norm_coverage","bin10000bp.bed")
+    output:
+        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin10000bp.bedgraph")
+    resources:
+        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_10000"
+    shell:
+        """
+        if [ ! $(hostname -s) == "haas005" ]; then
+            ml gcc/11.3.0 bedtools2
+        fi
+        bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
+        """
+        
 
 rule bin_expression_table:
     input:
@@ -692,30 +729,40 @@ rule get_gene_phase_amp:
                                              --out_table {output.table}
         """
 
+rule plot_gene_phase_amp:
+    input:
+        table=os.path.join("results",Species,"phase_amp","gene_phase_amp.csv")
+    output:
+        fig=os.path.join("results",Species,"fig","gene_phase_amp.pdf")
+    shell:
+        """
+        python scripts/plot_gene_phase_amp.py --in_table {input.table} \
+                                              --out_fig {output.fig}
+        """
+
 rule get_gene_phase_amp_bed:
     input:
         table=os.path.join("results",Species,"phase_amp","gene_phase_amp.csv")
     output:
-        bed=os.path.join("results",Species,"phase_amp","gene_phase_amp.bed"),
-        fig=os.path.join("results",Species,"fig","gene_phase_amp.pdf")
+        bed=os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"),
     shell:
         """
         python scripts/get_gene_phase_amp_bed_track.py --in_table {input.table} \
-                                                       --out_bed {output.bed} \
-                                                       --out_fig {output.fig}
+                                                       --strand {wildcards.strand} \
+                                                       --out_bed {output.bed}
         """
 
 rule gene_bed_to_bigBed:
     input:
-        bed=os.path.join("results",Species,"phase_amp","gene_phase_amp.bed"),
+        bed=os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"),
         chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
     output:
-        bb=os.path.join("results",Species,"phase_amp","gene_phase_amp.bb")
+        bb=os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bb")
     params:
         tmp_sorted=os.path.join("results",Species,"phase_amp","gene_phase_amp.sorted.bed")
     shell:
         """
-        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        sort -k1,1 -k2,2n {input.bed} > {params.tmp_sorted}
         bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
         rm {params.tmp_sorted}
         """
@@ -760,15 +807,13 @@ rule noise_model:
 rule Kalman_gene_smoothing:
     input:
         tables=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']), # only for dependency
-        #gtf=os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf"),
         noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"),
         gene_phase_amp=os.path.join("results",Species,"phase_amp","gene_phase_amp.csv")
     output:
         os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5")
     params:
         bw_folder=os.path.join("results",Species,"binned_norm_coverage")
-    threads:
-        24
+    threads: 24
     shell:
         """
         python scripts/Kalman_filter_on_genes.py --bin_size {wildcards.bin_size} \
@@ -882,6 +927,116 @@ rule plot_Kalman_smoothing:
                                              --out_ll {output.fig}
         """
 
+
+rule extended_kalman_on_expressed_regions:
+    input:
+        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),
+        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv")
+    params:
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+    output:
+        table=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"),
+    threads: 42
+    shell:
+        """
+        python scripts/extended_kalman_on_genomic_regions.py --bin_size {wildcards.bin_size} \
+                                                               --regions {input.expressed_regions} \
+                                                               --noise_model {input.noise_model_parameters} \
+                                                               --bw_folder {params.bw_folder} \
+                                                               --out_table {output.table} \
+                                                               --threads {threads}
+        """
+
+rule get_chromosomes:
+    input:
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        chromosomes=os.path.join("results",Species,"chromosomes.bed")
+    shell:
+        """
+        scripts/make_chromosome_bed.sh {input.chrom_size} {output.chromosomes}
+        """
+
+rule extended_kalman_on_chromosomes:
+    input:
+        chromosomes=os.path.join("results",Species,"chromosomes.bed"),
+        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv")
+    params:
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+    output:
+        table=os.path.join("results",Species,"kalman","extended_kalman_on_chromosomes_bin{bin_size}bp.csv"),
+    threads: 42
+    shell:
+        """
+        python scripts/extended_kalman_on_genomic_regions.py --bin_size {wildcards.bin_size} \
+                                                               --regions {input.chromosomes} \
+                                                               --noise_model {input.noise_model_parameters} \
+                                                               --bw_folder {params.bw_folder} \
+                                                               --out_table {output.table} \
+                                                               --threads {threads}
+        """
+
+rule extended_kalman_on_expressed_regions_bed:
+    input:
+        kalman=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv")
+    output:
+        bed_phi=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bed"),
+        bed_ll=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bedgraph")
+    params:
+        strand = lambda wildcards: '+' if wildcards.strand == "forward" else '-' if wildcards.strand == "reverse" else ''
+    shell:
+        """
+        python scripts/extended_kalman_bed_tracks.py --kalman_table {input.kalman} \
+                                                     --strand {params.strand} \
+                                                     --out_bed_phase_amp {output.bed_phi} \
+                                                     --out_bed_ll {output.bed_ll}
+        """
+
+rule extended_kalman_phi_amp_bb:
+    input:
+        bed=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bed"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bb=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"),
+    params:
+        tmp_sorted=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.sorted.bed")
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bed} > {params.tmp_sorted}
+        bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
+        rm {params.tmp_sorted}
+        """
+
+rule extended_kalman_ll_bw:
+    input:
+        bg=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bedgraph"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bw=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw")
+    params:
+        tmp_sorted=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.sorted.bedgraph")
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bg} > {params.tmp_sorted}
+        bedGraphToBigWig {params.tmp_sorted} {input.chrom_size} {output.bw}
+        rm {params.tmp_sorted}
+        """
+
+rule extended_kalman_average_LL_on_expressed_regions:
+    input:
+        kalman=os.path.join("results",Species,"kalman","extended_kalman_on_expressed_regions_bin{bin_size}bp.csv"),
+        expressed_regions=os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),
+    output:
+        table=os.path.join("results",Species,"kalman","average_LL_expressed_regions_bin{bin_size}bp.csv")
+    threads: 24
+    shell:
+        """
+        python scripts/get_average_LL_expressed_regions.py --kalman_table {input.kalman} \
+                                                           --expressed_regions {input.expressed_regions} \
+                                                           --out_table {output.table} \
+                                                           --threads {threads}
+        """
+
 ##--------------------------------------##
 ##  Time-space Fourier                  ##
 ##--------------------------------------##
@@ -957,6 +1112,7 @@ rule plot_time_space_fourier_transform:
 ##----------------------------------------##
 ##  Generate STAR genome index and align  ##
 ##----------------------------------------##
+<<<<<<< HEAD
 #rule star_genome_index:
 #    input:
 #        genome = os.path.join(config['outfold_genome'],Species,"genome.fa"),
@@ -1015,3 +1171,63 @@ rule plot_time_space_fourier_transform:
 #             --outFilterMatchNminOverLread 0 \
 #             --outFilterMatchNmin {params.minlen}
 #        """
+=======
+rule star_genome_index:
+    input:
+        genome = os.path.join(config['outfold_genome'],Species,"genome.fa"),
+        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+    output:
+        genome_dir = directory(os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/"))
+    params:
+        limitram = 200000000000,
+        overhang = config['read_length']['PE']-1
+    threads: 24
+    shell:
+        """
+        if [ ! $(hostname -s) == "haas005" ]; then
+            module load gcc/11.3.0 star
+        fi
+        mkdir -p {output.genome_dir}
+        STAR --runMode genomeGenerate \
+             --genomeDir {output.genome_dir} \
+             --genomeFastaFiles {input.genome} \
+             --sjdbGTFfile {input.gtf} \
+             --sjdbOverhang {params.overhang} \
+             --limitGenomeGenerateRAM {params.limitram} \
+             --runThreadN {threads}
+        """
+
+# first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
+rule star_align:
+    input:
+        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of trimmed fastq files for a given sample (for dependence only)
+        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+        genome_dir = os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/")
+    output:
+        os.path.join("results",Species,"star","{sample}","Aligned.sortedByCoord.out.bam"),
+        os.path.join("results",Species,"star","{sample}","Log.final.out")
+    params:
+        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of trimmed fastq files for a given sample
+        prefix=os.path.join("results",Species,"star","{sample}/"),
+        outsamtype = "BAM SortedByCoordinate",
+        limitram = 120000000000,
+        minlen = 16
+    threads: 12
+    shell:
+        """
+        if [ ! $(hostname -s) == "haas005" ]; then
+            module load gcc/11.3.0 star
+        fi
+        STAR --runMode alignReads \
+             --genomeDir {input.genome_dir} \
+             --readFilesIn {params.fq_cmd_str} \
+             --runThreadN {threads} \
+             --readFilesCommand gunzip -c \
+             --outFileNamePrefix {params.prefix} \
+             --outSAMtype {params.outsamtype} \
+             --limitBAMsortRAM {params.limitram} \
+             --sjdbGTFfile {input.gtf} \
+             --outFilterMatchNminOverLread 0 \
+             --outFilterMatchNmin {params.minlen}
+        """
+>>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
