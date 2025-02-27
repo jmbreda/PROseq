@@ -45,11 +45,8 @@ wildcard_constraints:
     strand="|".join(config['Strands']),
     bin_size="|".join(config['Bin_size']),
     chr="|".join(config['Chromosomes']),
-<<<<<<< HEAD
     reads = "|".join(['R1','R2'])
-=======
     region="|".join(config['Extended_kalman']['Genomic_regions'])
->>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
 
 Reads = ['R1','R2']
 
