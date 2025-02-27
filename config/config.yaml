@@ -1,14 +1,14 @@
 URLs:
     GRCh38:
-        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v43.basic.annotation.gtf.gz"
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v43.primary_assembly.annotation.gtf.gz"
         genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz"
         cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.pc_transcripts.fa.gz"
     GRCm39:
-        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.basic.annotation.gtf.gz"
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.primary_assembly.annotation.gtf.gz"
         genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/GRCm39.primary_assembly.genome.fa.gz"
         cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M33/gencode.vM33.pc_transcripts.fa.gz"
     GRCm38:
-        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.basic.annotation.gtf.gz"
+        gtf: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.primary_assembly.annotation.gtf.gz"
         genome: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/GRCm38.primary_assembly.genome.fa.gz"
         cdna: "ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/gencode.vM23.pc_transcripts.fa.gz"
 
@@ -104,7 +104,7 @@ adapter:
 # Reverse complement of the Illumina TruSeq Small RNA 5' adapter: 'GUUCAGAGUUCUACAGUCCGACGAUC'.translate(''.maketrans('ACGU','TGCA'))[::-1]
 
 MAPQ_min: 10 # Minimum MAPQ score for reads to be considered (Phred-scaled)
-
+MAPQ_mem: "6G" # Memory per thread for filtering and sorting bam files
 mate_dist_max: 1000 # Maximum distance between mates for paired-end reads
 
 

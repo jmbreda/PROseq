@@ -42,14 +42,14 @@
         "name" : "bwa_aln_se",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
-        "mem" : "20G"
+        "mem" : "80G"
     },
 
     "bwa_samse" :
     {
         "name" : "bwa_samse",
         "time" : "48:00:00",
-        "cpus-per-task" : 1,
+        "cpus-per-task" : 3,
         "mem" : "20G"
     },
 
@@ -72,9 +72,9 @@
     "bwa_sampe" :
     {
         "name" : "bwa_sampe",
-        "time" : "48:00:00",
+        "time" : "7-00:00:00",
         "cpus-per-task" : 1,
-        "mem" : "10G"
+        "mem" : "6G"
     },
     
     "mapped_uniq_MAPQ_close_mates_sorted_pe" :
