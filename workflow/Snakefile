@@ -1,16 +1,29 @@
 import pandas as pd
 
-def get_samples_fastq_files(wildcards):
-    samples = pd.read_csv(f"resources/sample_to_fastq_Run2.txt", sep="\t", header=None, index_col=0, names=['fastq'])
-    fq_files = samples.at[wildcards.sample, 'fastq'].replace('/fastq/', '/fastq_trimmed/')
+#def get_samples_fastq_files(wildcards):
+#    samples = pd.read_csv(f"resources/sample_to_fastq_Run2.txt", sep="\t", header=None, index_col=0, names=['fastq'])
+#    fq_files = samples.at[wildcards.sample, 'fastq'].replace('/fastq/', '/fastq_trimmed/')
+#    
+#    return fq_files
+#
+#def get_fastq_list(wildcards):
+#    fq_files = get_samples_fastq_files(wildcards)
+#    fq_files_list = fq_files.split(' ')[0].split(',') + fq_files.split(' ')[1].split(',')
+#    
+#    return fq_files_list
+#
+# Get resources/filenames_to_sample.txt with scripts/make_sample_to_fastq.sh
+def get_se_fastq_per_sample(wildcards,Species):
+    samples = pd.read_csv(f"resources/SE_filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['seq_id'])
+    fastq = [f'resources/fastq_trimmed/{f}_001.fastq.gz' for f in samples.at[wildcards.sample, 'seq_id'].split(',')]
     
-    return fq_files
+    return fastq
 
-def get_fastq_list(wildcards):
-    fq_files = get_samples_fastq_files(wildcards)
-    fq_files_list = fq_files.split(' ')[0].split(',') + fq_files.split(' ')[1].split(',')
+def get_pe_fastq_per_sample(wildcards,Species):
+    samples = pd.read_csv(f"resources/PE_filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['seq_id'])
+    fastq = [f'resources/fastq_trimmed/{f}_{wildcards.reads}_R1_001.fastq.gz' for f in samples.at[wildcards.sample, 'seq_id'].split(',')]
     
-    return fq_files_list
+    return fastq
 
 def get_bam_files_per_sample(wildcards,Species):
     samples = pd.read_csv(f"resources/filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['fastq'])
@@ -32,23 +45,32 @@ wildcard_constraints:
     strand="|".join(config['Strands']),
     bin_size="|".join(config['Bin_size']),
     chr="|".join(config['Chromosomes']),
+    reads = "|".join(['R1','R2'])
     region="|".join(config['Extended_kalman']['Genomic_regions'])
 
 Reads = ['R1','R2']
 
 rule all:
     input:
-        # trimming
+        # download gencode files
+        #os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+        #os.path.join(config['outfold_genome'],Species,"cdna.fa"),
+        #os.path.join(config['outfold_genome'],Species,"genome.fa"),
+        #
+        # trimming and merging
         #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_R1_001.fastq.gz"), file=config['Fastq_Files']['SE']),
         #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_{r}_001.fastq.gz"), file=config['Fastq_Files']['PE'], r=Reads),
+        expand(os.path.join(config['outfold_fastq_trimmed'],"{sample}_{reads}.fastq.gz"),sample=config['Samples'],reads=Reads),
+        #
         # alignment
         #os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
-        #expand(os.path.join("results",Species,"bwa","{file_se}.sam"), file_se=config['Fastq_Files']['SE']),
-        #expand(os.path.join("results",Species,"bwa","{file_pe}.sam"), file_pe=config['Fastq_Files']['PE']),
+        #expand(os.path.join("results",Species,"bwa","{sample}_se.sam"), sample=config['Samples']),
+        #expand(os.path.join("results",Species,"bwa","{sample}_pe.sam"), sample=config['Samples']),
         #expand( os.path.join("results",Species,"bwa","{file}.bam"), file=['18035FL-105-01V1-01_S1_L008','PRO_SEQ_CT00_S1','18035FL-105-01_S1_L005','18035FL-105-01_S1_L006'] )
         #expand(os.path.join("results",Species,"bwa","{file}.bam"), file=config['Fastq_Files']['PE']),
         #expand(os.path.join("results",Species,"bwa","{file}.bam"), file=config['Fastq_Files']['SE']),
-        #expand(os.path.join("results",Species,"bwa","{sample}.bam"), sample=config['Samples']),
+        expand(os.path.join("results",Species,"bwa","{sample}.bam"), sample=config['Samples']),
+        #
         # coverage
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
@@ -59,6 +81,7 @@ rule all:
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        #
         # Phase and amplitude
         #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),        
@@ -159,8 +182,32 @@ rule cutadapt_pe:
         """
 
 ##-----------------##
-##  BWA alignment  ##
+##  Merge fastq    ##
 ##-----------------##
+
+rule merge_pe_fastq:
+    input:
+        fastq_list = lambda wildcards: get_pe_fastq_per_sample(wildcards,Species)
+    output:
+        fastq = os.path.join(config['outfold_fastq_trimmed'],"{sample}_{reads}.fastq.gz")
+    shell:
+        """
+        cat {input.fastq_list} > {output.fastq}
+        """
+
+rule merge_se_fastq:
+    input:
+        fastq_list = lambda wildcards: get_se_fastq_per_sample(wildcards,Species)
+    output:
+        fastq = os.path.join(config['outfold_fastq_trimmed'],"{sample}_se.fastq.gz")
+    shell:
+        """
+        cat {input.fastq_list} > {output.fastq}
+        """
+
+##-------------##
+##  BWA index  ##
+##-------------##
 rule bwa_index:
     input:
         genome=os.path.join(config['outfold_genome'],Species,"genome.fa")
@@ -168,50 +215,9 @@ rule bwa_index:
         bwa_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt")
     shell:
         """
+<<<<<<< HEAD
         bwa index {input.genome}
-        """
-
-##------------------##
-##  BWA single-end  ##
-##------------------##
-rule bwa_aln_se:
-    input:
-        genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
-        genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
-        fq=os.path.join(config['outfold_fastq_trimmed'],"{file_se}_R1_001.fastq.gz")
-    output:
-        sai=os.path.join("results",Species,"bwa","{file_se}.sai")
-    threads: 12
-    shell:
-        """
-        bwa aln -t {threads} -f {output.sai} {input.genome} {input.fq}
-        """
-
-rule bwa_samse:
-    input:
-        genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
-        genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
-        fq=os.path.join(config['outfold_fastq_trimmed'],"{file_se}_R1_001.fastq.gz"),
-        sai=os.path.join("results",Species,"bwa","{file_se}.sai")
-    output:
-        sam=os.path.join("results",Species,"bwa","{file_se}.sam")
-    threads: 1
-    shell:
-        """
-        bwa samse -f {output.sam} {input.genome} {input.sai} {input.fq}
-        """
-
-rule mapped_uniq_MAPQ_sorted_se:
-    input:
-        sam=os.path.join("results",Species,"bwa","{file_se}.sam")
-    output:
-        bam=os.path.join("results",Species,"bwa","{file_se}.bam")
-    params:
-        MAPQ_min=config['MAPQ_min'],
-        mem='4G'
-    threads: 12
-    shell:
-        """
+=======
         if [ ! $(hostname -s) == "haas005" ]; then
             ml gcc/11.3.0 samtools
         fi
@@ -219,7 +225,65 @@ rule mapped_uniq_MAPQ_sorted_se:
             awk '$1 ~ /^@/ || $2 == "16" || $2 == "0"' |\
             grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
             samtools sort -@ {threads} -m {params.mem} > {output.bam}
+>>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
         """
+
+##------------------##
+##  BWA single-end  ##
+##------------------##
+#rule bwa_aln_se:
+#    input:
+#        genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
+#        genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
+#        fq=os.path.join(config['outfold_fastq_trimmed'],"{sample}_se.fastq.gz")
+#    output:
+#        sai=os.path.join("results",Species,"bwa","{sample}_se.sai")
+#    threads: 12
+#    shell:
+#        """
+#        bwa aln -t {threads} -f {output.sai} {input.genome} {input.fq}
+#        """
+#
+#rule bwa_samse:
+#    input:
+#        genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
+#        genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
+#        fq=os.path.join(config['outfold_fastq_trimmed'],"{sample}_se.fastq.gz"),
+#        sai=os.path.join("results",Species,"bwa","{sample}_se.sai")
+#    output:
+#        sam=os.path.join("results",Species,"bwa","{sample}_se.sam")
+#    threads: 3
+#    shell:
+#        """
+#        bwa samse -f {output.sam} {input.genome} {input.sai} {input.fq}
+#        """
+#
+#rule mapped_uniq_MAPQ_sorted_se:
+#    input:
+#        sam=os.path.join("results",Species,"bwa","{sample}_se.sam")
+#    output:
+#        bam=os.path.join("results",Species,"bwa","{sample}_se.bam")
+#    params:
+#        MAPQ_min=config['MAPQ_min'],
+#        mem=config['MAPQ_mem']
+#    threads: 12
+#    shell:
+#        """
+#        if [ ! $(hostname -s) == "haas005" ]; then
+#            ml gcc/11.3.0 samtools
+#        fi
+#        samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
+#            awk '$1 ~ /^@/ || $2 == "16" || $2 == "0"' |\
+#            grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
+#            samtools sort -@ {threads} -m {params.mem} > {output.bam}
+#        """
+
+rule make_empty_bam:
+    output:
+        bam=os.path.join("results",Species,"bwa","{sample}_se.bam")
+    shell:
+        "touch {output.bam}"
+
 
 ##------------------##
 ##  BWA paired-end  ##
@@ -228,11 +292,11 @@ rule bwa_aln_pe:
     input:
         genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
         genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
-        fq1=os.path.join(config['outfold_fastq_trimmed'],"{file_pe}_R1_001.fastq.gz"),
-        fq2=os.path.join(config['outfold_fastq_trimmed'],"{file_pe}_R2_001.fastq.gz")
+        fq1=os.path.join(config['outfold_fastq_trimmed'],"{sample}_R1.fastq.gz"),
+        fq2=os.path.join(config['outfold_fastq_trimmed'],"{sample}_R2.fastq.gz")
     output:
-        sai1=os.path.join("results",Species,"bwa","{file_pe}_R1.sai"),
-        sai2=os.path.join("results",Species,"bwa","{file_pe}_R2.sai")
+        sai1=os.path.join("results",Species,"bwa","{sample}_R1.sai"),
+        sai2=os.path.join("results",Species,"bwa","{sample}_R2.sai")
     threads: 12
     shell:
         """
@@ -244,12 +308,12 @@ rule bwa_sampe:
     input:
         genome=os.path.join(config['outfold_genome'],Species,"genome.fa"),
         genome_index=os.path.join(config['outfold_genome'],Species,"genome.fa.bwt"),
-        fq1=os.path.join(config['outfold_fastq_trimmed'],"{file_pe}_R1_001.fastq.gz"),
-        fq2=os.path.join(config['outfold_fastq_trimmed'],"{file_pe}_R2_001.fastq.gz"),
-        sai1=os.path.join("results",Species,"bwa","{file_pe}_R1.sai"),
-        sai2=os.path.join("results",Species,"bwa","{file_pe}_R2.sai")
+        fq1=os.path.join(config['outfold_fastq_trimmed'],"{sample}_R1.fastq.gz"),
+        fq2=os.path.join(config['outfold_fastq_trimmed'],"{sample}_R2.fastq.gz"),
+        sai1=os.path.join("results",Species,"bwa","{sample}_R1.sai"),
+        sai2=os.path.join("results",Species,"bwa","{sample}_R2.sai")
     output:
-        sam=os.path.join("results",Species,"bwa","{file_pe}.sam")
+        sam=os.path.join("results",Species,"bwa","{sample}_pe.sam")
     threads: 1
     shell:
         """
@@ -258,12 +322,12 @@ rule bwa_sampe:
 
 rule mapped_uniq_MAPQ_close_mates_sorted_pe:
     input:
-        sam=os.path.join("results",Species,"bwa","{file_pe}.sam")
+        sam=os.path.join("results",Species,"bwa","{sample}_pe.sam")
     output:
-        bam=os.path.join("results",Species,"bwa","{file_pe}.bam")
+        bam=os.path.join("results",Species,"bwa","{sample}_pe.bam")
     params:
         MAPQ_min=config['MAPQ_min'],
-        mem='4G',
+        mem=config['MAPQ_mem'],
         mate_dist_max=config['mate_dist_max']
     threads: 12
     shell:
@@ -279,11 +343,12 @@ rule mapped_uniq_MAPQ_close_mates_sorted_pe:
         """
 
 ##----------------------------##
-## Merge PE & SE files, index ##
+##  Merge PE & SE bam, index  d##
 ##----------------------------##
 rule merge_bam:
     input:
-        files_per_sample = lambda wildcards: get_bam_files_per_sample(wildcards,Species)
+        bam_se = os.path.join("results",Species,"bwa","{sample}_se.bam"),
+        bam_pe = os.path.join("results",Species,"bwa","{sample}_pe.bam")
     output:
         bam=os.path.join("results",Species,"bwa","{sample}.bam")
     threads: 12
@@ -292,7 +357,12 @@ rule merge_bam:
         if [ ! $(hostname -s) == "haas005" ]; then
             ml gcc/11.3.0 samtools
         fi
-        samtools merge -@ {threads} -f {output.bam} {input.files_per_sample}
+        if [ $(cat {input.bam_se}| wc -l) == "0" ]; then
+            echo "SE is empty"
+            cp {input.bam_pe} {output.bam}
+        else
+            samtools merge -@ {threads} -f {output.bam} {input.bam_se} {input.bam_pe}
+        fi
         """
 
 rule sam_index:
@@ -1036,9 +1106,69 @@ rule plot_time_space_fourier_transform:
 
 
 
- ##----------------------------------------##
+##----------------------------------------##
 ##  Generate STAR genome index and align  ##
 ##----------------------------------------##
+<<<<<<< HEAD
+#rule star_genome_index:
+#    input:
+#        genome = os.path.join(config['outfold_genome'],Species,"genome.fa"),
+#        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+#    output:
+#        genome_dir = directory(os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/"))
+#    params:
+#        limitram = 200000000000,
+#        overhang = config['read_length']['PE']-1
+#    threads: 24
+#    shell:
+#        """
+#        if [ ! $(hostname -s) == "haas005" ]; then
+#            module load gcc/11.3.0 star
+#        fi
+#        mkdir -p {output.genome_dir}
+#        STAR --runMode genomeGenerate \
+#             --genomeDir {output.genome_dir} \
+#             --genomeFastaFiles {input.genome} \
+#             --sjdbGTFfile {input.gtf} \
+#             --sjdbOverhang {params.overhang} \
+#             --limitGenomeGenerateRAM {params.limitram} \
+#             --runThreadN {threads}
+#        """
+
+# first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
+#rule star_align:
+#    input:
+#        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of trimmed fastq files for a given sample (for dependence only)
+#        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+#        genome_dir = os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/")
+#    output:
+#        os.path.join("results",Species,"star","{sample}","Aligned.sortedByCoord.out.bam"),
+#        os.path.join("results",Species,"star","{sample}","Log.final.out")
+#    params:
+#        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of trimmed fastq files for a given sample
+#        prefix=os.path.join("results",Species,"star","{sample}/"),
+#        outsamtype = "BAM SortedByCoordinate",
+#        limitram = 120000000000,
+#        minlen = 16
+#    threads: 12
+#    shell:
+#        """
+#        if [ ! $(hostname -s) == "haas005" ]; then
+#            module load gcc/11.3.0 star
+#        fi
+#        STAR --runMode alignReads \
+#             --genomeDir {input.genome_dir} \
+#             --readFilesIn {params.fq_cmd_str} \
+#             --runThreadN {threads} \
+#             --readFilesCommand gunzip -c \
+#             --outFileNamePrefix {params.prefix} \
+#             --outSAMtype {params.outsamtype} \
+#             --limitBAMsortRAM {params.limitram} \
+#             --sjdbGTFfile {input.gtf} \
+#             --outFilterMatchNminOverLread 0 \
+#             --outFilterMatchNmin {params.minlen}
+#        """
+=======
 rule star_genome_index:
     input:
         genome = os.path.join(config['outfold_genome'],Species,"genome.fa"),
@@ -1097,3 +1227,4 @@ rule star_align:
              --outFilterMatchNminOverLread 0 \
              --outFilterMatchNmin {params.minlen}
         """
+>>>>>>> 8dabde4ad7a5316e5d2f6ef2127c7cdf7f5d7e81
