@@ -1,7 +1,6 @@
 {
     "__default__" :
     {
-        "name" : "default_snakejob",
         "qos" : "serial",
         "time" : "06:00:00",
         "mem" : "6G",
@@ -14,7 +13,6 @@
 
     "bwa_index" :
     {
-        "name" : "bwa_index",
         "time" : "06:00:00",
         "cpus-per-task" : 1,
         "mem" : "6G"
@@ -23,7 +21,6 @@
 
     "cutadapt_se" :
     {
-        "name" : "cutadapt_se",
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -31,7 +28,6 @@
 
     "cutadapt_pe" :
     {
-        "name" : "cutadapt",
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -39,7 +35,6 @@
 
     "bwa_aln_se" :
     {
-        "name" : "bwa_aln_se",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -47,7 +42,6 @@
 
     "bwa_samse" :
     {
-        "name" : "bwa_samse",
         "time" : "48:00:00",
         "cpus-per-task" : 3,
         "mem" : "20G"
@@ -55,7 +49,6 @@
 
     "mapped_uniq_MAPQ_sorted_se" :
     {
-        "name" : "mapped_uniq_MAPQ_se",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -63,7 +56,6 @@
 
     "bwa_aln_pe" :
     {
-        "name" : "bwa_aln_pe",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -71,23 +63,27 @@
 
     "bwa_sampe" :
     {
-        "name" : "bwa_sampe",
         "time" : "7-00:00:00",
         "cpus-per-task" : 1,
         "mem" : "6G"
     },
     
-    "mapped_uniq_MAPQ_close_mates_sorted_pe" :
+    "mapped_uniq_MAPQ_close_mates_pe" :
     {
-        "name" : "mapped_uniq_MAPQ_close_mates_sorted_pe",
         "time" : "24:00:00",
+        "cpus-per-task" : 12,
+        "mem" : "80G"
+    },
+
+    "sort_sam_to_bam" :
+    {
+        "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
     },
 
     "merge_bam" :
     {
-        "name" : "merge_bam",
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "20G"
@@ -95,7 +91,6 @@
 
     "star_genome_index" :
     {
-        "name" : "star_genome_index",
         "time" : "02:00:00",
         "cpus-per-task" : 24,
         "mem" : "200G"
@@ -103,7 +98,6 @@
 
     "star_align" :
     {
-        "name" : "star_align",
         "time" : "12:00:00",
         "cpus-per-task" : 12,
         "mem" : "120G"
@@ -111,7 +105,6 @@
 
     "get_gene_phase_amp" :
     {
-        "name" : "get_gene_phase_amp",
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -119,7 +112,6 @@
 
     "get_bin_phase_amp" :
     {
-        "name" : "get_bin_phase_amp",
         "time" : "06:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -127,7 +119,6 @@
 
     "time_space_fourier_transform" :
     {
-        "name" : "time_space_fourier_transform",
         "time" : "48:00:00",
         "cpus-per-task" : 24,
         "mem" : "160G"
@@ -135,7 +126,6 @@
 
     "noise_model" :
     {
-        "name" : "noise_model",
         "time" : "01:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -143,7 +133,6 @@
 
     "Kalman_smoothing" :
     {
-        "name" : "kalman",
         "time" : "24:00:00",
         "cpus-per-task" : 12,
         "mem" : "80G"
@@ -151,7 +140,6 @@
 
     "Kalman_gene_smoothing" :
     {
-        "name" : "kalman_gene",
         "time" : "24:00:00",
         "cpus-per-task" : 26,
         "mem" : "160G"

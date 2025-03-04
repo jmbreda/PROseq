@@ -69,7 +69,7 @@ rule all:
         #expand( os.path.join("results",Species,"bwa","{file}.bam"), file=['18035FL-105-01V1-01_S1_L008','PRO_SEQ_CT00_S1','18035FL-105-01_S1_L005','18035FL-105-01_S1_L006'] )
         #expand(os.path.join("results",Species,"bwa","{file}.bam"), file=config['Fastq_Files']['PE']),
         #expand(os.path.join("results",Species,"bwa","{file}.bam"), file=config['Fastq_Files']['SE']),
-        #expand(os.path.join("results",Species,"bwa","{sample}.bam"), sample=config['Samples']),
+        expand(os.path.join("results",Species,"bwa","{sample}.bam"), sample=config['Samples']),
         #
         # coverage
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
@@ -111,7 +111,7 @@ rule all:
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
 ##-------------------------------------------------------------------##
 rule download_gencode_gtf:
-    output: 
+    output:
         os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf")
     params: 
         url = lambda wildcards: config['URLs'][Species]['gtf']
@@ -312,14 +312,14 @@ rule bwa_sampe:
         bwa sampe -f {output.sam} {input.genome} {input.sai1} {input.sai2} {input.fq1} {input.fq2}
         """
 
-rule mapped_uniq_MAPQ_close_mates_sorted_pe:
+rule mapped_uniq_MAPQ_close_mates_pe:
     input:
         sam=os.path.join("results",Species,"bwa","{sample}_pe.sam")
     output:
-        bam=os.path.join("results",Species,"bwa","{sample}_pe.bam")
+        sam=os.path.join("results",Species,"bwa","{sample}_pe_unsorted.sam")
     params:
         MAPQ_min=config['MAPQ_min'],
-        mem=config['MAPQ_mem'],
+        mem="6G",
         mate_dist_max=config['mate_dist_max']
     threads: 12
     shell:
@@ -330,8 +330,23 @@ rule mapped_uniq_MAPQ_close_mates_sorted_pe:
         samtools view -@ {threads} -h -q {params.MAPQ_min} -F 4 {input.sam} |\
             awk '$1 ~ /^@/ || $2 == "81" || $2 == "97"' |\
             grep -v 'XA:Z:'| grep -v 'SA:Z:' |\
-            awk '$1 ~ /^@/ || $7 == "=" && $9 > -{params.mate_dist_max} && $9 < {params.mate_dist_max}' |\
-            samtools sort -@ {threads} -m {params.mem} > {output.bam}
+            awk '$1 ~ /^@/ || $7 == "=" && $9 > -{params.mate_dist_max} && $9 < {params.mate_dist_max}' > {output.sam}
+        """
+
+rule sort_sam_to_bam:
+    input:
+        sam=os.path.join("results",Species,"bwa","{sample}_pe_unsorted.sam")
+    output:
+        bam=os.path.join("results",Species,"bwa","{sample}_pe.bam")
+    params:
+        mem="6g"
+    threads: 12
+    shell:
+        """
+        if [ ! $(hostname -s) == "haas005" ]; then
+            ml gcc/11.3.0 samtools
+        fi
+        samtools view -bS {input.sam} | samtools sort -@ {threads} -m {params.mem} > {output.bam}
         """
 
 ##----------------------------##
@@ -468,14 +483,14 @@ rule make_bin_bed:
         python scripts/make_bins.py --chrom_size {input.chrom_size} --bin_size {wildcards.bin_size} --output {output.bed}
         """
 
-rule bin_coverage_1K:
+rule bin_coverage:
     input:
         bed=os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bedgraph"),
-        bins=os.path.join("results",Species,"binned_norm_coverage","bin1000bp.bed")
+        bins=os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed")
     output:
-        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin1000bp.bedgraph")
+        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bedgraph")
     resources:
-        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_1000"
+        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_{wildcards.bin_size}"
     shell:
         """
         if [ ! $(hostname -s) == "haas005" ]; then
@@ -484,21 +499,22 @@ rule bin_coverage_1K:
         bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
         """
 
-rule bin_coverage_10K:
-    input:
-        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin1000bp.bedgraph"),
-        bins=os.path.join("results",Species,"binned_norm_coverage","bin10000bp.bed")
-    output:
-        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin10000bp.bedgraph")
-    resources:
-        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_10000"
-    shell:
-        """
-        if [ ! $(hostname -s) == "haas005" ]; then
-            ml gcc/11.3.0 bedtools2
-        fi
-        bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
-        """
+# sum the 1K coverage in 10K bins
+#rule bin_coverage_10K:
+#    input:
+#        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin1000bp.bedgraph"),
+#        bins=os.path.join("results",Species,"binned_norm_coverage","bin10000bp.bed")
+#    output:
+#        bed=os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin10000bp.bedgraph")
+#    resources:
+#        tmpdir = lambda wildcards: f"tmpdir/bin_coverage_{wildcards.sample}_{wildcards.strand}_10000"
+#    shell:
+#        """
+#        if [ ! $(hostname -s) == "haas005" ]; then
+#            ml gcc/11.3.0 bedtools2
+#        fi
+#        bedtools map -a {input.bins} -b {input.bed} -c 4 -o sum -null out | awk '$4 != "out"' > {output.bed}
+#        """
         
 
 rule bin_expression_table:

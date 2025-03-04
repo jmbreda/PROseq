@@ -3,7 +3,7 @@ snakemake -s workflow/Snakefile \
           -j 500 \
           --use-conda \
           --cluster-config config/cluster.json \
-          --cluster "sbatch --job-name {cluster.name} \
+          --cluster "sbatch --job-name {rule} \
                             --qos {cluster.qos} \
                             --time {cluster.time} \
                             --mem {cluster.mem} \
@@ -11,7 +11,7 @@ snakemake -s workflow/Snakefile \
                             --ntasks {cluster.ntasks} \
                             --cpus-per-task {cluster.cpus-per-task} \
                             --output {cluster.stdout} \
-                            --error {cluster.stderr}" -n
+                            --error {cluster.stderr}"
                             # --rulegraph | dot -Tpdf > workflow/rulegraph.pdf
                             # --dag | dot -Tpdf > workflow/dag.pdf
                             
