@@ -78,8 +78,8 @@
     "sort_sam_to_bam" :
     {
         "time" : "06:00:00",
-        "cpus-per-task" : 12,
-        "mem" : "80G"
+        "cpus-per-task" : 24,
+        "mem" : "160G"
     },
 
     "merge_bam" :
@@ -143,5 +143,19 @@
         "time" : "24:00:00",
         "cpus-per-task" : 26,
         "mem" : "160G"
+    },
+
+    "extended_kalman_on_chromosomes" :
+    {
+        "time" : "24:00:00",
+        "cpus-per-task" : 42,
+        "mem" : "280G"
+    },
+
+    "extended_kalman_on_expressed_regions" :
+    {
+        "time" : "24:00:00",
+        "cpus-per-task" : 42,
+        "mem" : "280G"
     }
 }

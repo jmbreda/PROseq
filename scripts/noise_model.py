@@ -47,7 +47,10 @@ if __name__ == '__main__':
     # remove rows with more than 75% of nan values
     df.dropna(thresh=len(T)//4,inplace=True)
 
+    # fill nan values with 0
     df.fillna(0,inplace=True)
+
+    # log transform with pseudocount 1
     df = df.apply(lambda x: np.log2(x+1),axis=1)
 
     # separate mesurments at time [0-24) and [24-48)

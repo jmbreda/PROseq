@@ -18,8 +18,8 @@ outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
 
 Bin_size:
-    #- '100'
-    #- '1000'
+    - '100'
+    - '1000'
     - '10000'
 
 Samples:
@@ -156,5 +156,5 @@ Expressed_regions:
 
 Extended_kalman:
     Genomic_regions:
-        - expressed_regions
         - chromosomes
+        #- expressed_regions
