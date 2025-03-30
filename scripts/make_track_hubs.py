@@ -75,50 +75,44 @@ if __name__ == '__main__':
                 p+=1
 
             # Bed tracks with kalman smoothing phase
-            for strand in Strands:
-                fout.write(f"track gene_kalman_smoothing_phase_{strand[0]}\n")
-                fout.write("type bigBed 9\n")
-                fout.write("itemRgb on\n")
-                fout.write(f"shortLabel Gene kalman phase {strand[0]}\n")
-                fout.write(f"longLabel Gene phase by kalman filter {strand} strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
-                fout.write(f"bigDataUrl {track_folder}/phase_amp/gene_kalman_phase_R2_{strand}_1000bp.bb\n")
-                fout.write("visibility dense\n")
-                fout.write(f"priority {p}\n")
-                fout.write("\n")
+            for bin_size in [1000,10000]:
+                for strand in Strands:
+                    fout.write(f"track gene_kalman_smoothing_phase_{bin_size}_{strand[0]}\n")
+                    fout.write("type bigBed 9\n")
+                    fout.write("itemRgb on\n")
+                    fout.write(f"shortLabel Gene kalman phase {strand[0]} {bin_size//1000}kb\n")
+                    fout.write(f"longLabel Gene phase by kalman filter {strand} strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+                    fout.write(f"bigDataUrl {track_folder}/phase_amp/gene_kalman_phase_R2_{strand}_{bin_size}bp.bb\n")
+                    if bin_size == 10000:
+                        fout.write("visibility dense\n")
+                    else:
+                        fout.write("visibility hide\n")
+                    fout.write(f"priority {p}\n")
+                    fout.write("\n")
 
-                p+=1
+                    p+=1
 
             # Bed tracks with bin phase
             for bin_size in [1000,10000]:
                 for strand in Strands:
-                    fout.write(f"track bin_phase_{bin_size}k_{strand}\n")
+                    fout.write(f"track bin_phase_{bin_size}_{strand[0]}\n")
                     fout.write("type bigBed 9\n")
                     fout.write("itemRgb on\n")
                     fout.write(f"shortLabel Bin phase {strand} {bin_size//1000}kb\n")
                     fout.write(f"longLabel {strand} bin {bin_size//1000}kb phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                     fout.write(f"bigDataUrl {track_folder}/phase_amp/bin_phase_amp_{strand}_{bin_size}bp.bb\n")
-                    fout.write("visibility dense\n")
+                    if bin_size == 10000:
+                        fout.write("visibility dense\n")
+                    else:
+                        fout.write("visibility hide\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
 
-            ## Bed tracks with expressed regions
-            #for bin_size in [1000,10000]:
-            #    fout.write(f"track expressed_regions_{bin_size}\n")
-            #    fout.write("type bigBed 3\n")
-            #    #fout.write("itemRgb on\n")
-            #    fout.write(f"shortLabel Expressed regions {bin_size//1000}kb\n")
-            #    fout.write(f"longLabel bin {bin_size//1000}kb Expressed regions\n")
-            #    fout.write(f"bigDataUrl {track_folder}/binned_norm_coverage/expressed_regions_bin{bin_size}bp.bb\n")
-            #    fout.write("visibility dense\n")
-            #    fout.write(f"priority {p}\n")
-            #    fout.write("\n")
-            #    p += 1
-
             # bed tracks with extended kalman smoothing phase and amp on expressed regions
             for bin_size in [1000,10000]:
                 for strand in Strands:
-                    fout.write(f"track cont_ext_kalman_phase_amp_{strand[0]}_{bin_size}\n")
+                    fout.write(f"track cont_ext_kalman_phase_amp_{bin_size}_{strand[0]}\n")
                     fout.write("type bigBed 9\n")
                     fout.write("itemRgb on\n")
                     fout.write(f"shortLabel Kalman phi amp {strand[0]} {bin_size//1000}kb\n")
