@@ -5,18 +5,16 @@ import argparse
 from scipy.stats import beta
 import sys
 sys.path.insert(0, '/home/jbreda/PROseq/scripts/FourierTransform')
-from fourier_transform import fourier_transform_GLS
+from fourier_transform import fourier_transform
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
     parser.add_argument('--bin_size', help='Bin size', type=int)
     parser.add_argument('--strand', help='Input data folder', type=str)
     parser.add_argument('--bw_folder', help='Input data folder', type=str)
-    parser.add_argument('--noise_model_parameters', help='Noise model parametrs', default="results/GRCm38/binned_norm_coverage/Noise_model_parameters_1000bp.csv", type=str)
     parser.add_argument('--out_table', help='Output phase, amplitude, expression and fit stats table', type=str)
     args = parser.parse_args()
     return args
-
 
 if __name__ == '__main__':
     
@@ -35,17 +33,6 @@ if __name__ == '__main__':
                    'reverse':'-',
                    '+':'forward',
                    '-':'reverse'}
-    
-    # get noise model parametrs
-    fin = open(args.noise_model_parameters,'r')
-    lines = fin.readlines()
-    noise_params = {}
-    for line in lines:
-        if line[0] == '#':
-            continue
-        line = line.strip().split('\t')
-        noise_params[line[0]] = float(line[1])
-    fin.close()
 
     # Load bw files
     f = {}
@@ -54,8 +41,7 @@ if __name__ == '__main__':
         fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{args.strand}_bin{args.bin_size}bp.bw"
         f[t] = bw.open(fin)
 
-    # init output table and loop on chromosomes
-    df_out = pd.DataFrame(columns=['chr','start','end','strand','mu','phi','A','sigma2_mu','sigma2_A','sigma2_phi','R2','pval'])
+    df_out = pd.DataFrame(columns=['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression'])
     for chr in CHR:
 
         # fill in time points
@@ -76,33 +62,21 @@ if __name__ == '__main__':
         # log transform and add pseudo counts and sum for gene expression
         X = np.log(X + 1)
 
-        # get precision matrix Λ
-        N_bin, N_t = X.shape[0]
-        Λ = np.zeros([N_bin, N_t, N_t])
-        σ2 = noise_params['a'] * np.exp(-noise_params['b'] * X ) + noise_params['c']
-        σ2[X < noise_params['m_e_max']] = noise_params['e_max']
-        for i in range(N_bin):
-            Λ[i] = np.diag(1/σ2[i])
-
-        # run GLS harmonic regression
-        mu, A, phi, sigma2_mu, sigma2_A, sigma2_phi, R2, pval = fourier_transform_GLS(X,T,omega_n,Λ)
+        phi_n, a_n, R2, pval, mu_n = fourier_transform(X,T,omega_n)
 
         # phase and amplitude
         df = pd.DataFrame()
         df = df_in.loc[:,['start','end']]
         df['chr'] = chr
         df['strand'] = strand_dict[args.strand]
-        df['mu'] = mu
-        df['phi'] = phi
-        df['A'] = A
-        df['sigma2_mu'] = sigma2_mu
-        df['sigma2_A'] = sigma2_A
-        df['sigma2_phi'] = sigma2_phi
+        df['phase'] = phi_n
+        df['amplitude'] = a_n
         df['R2'] = R2
         df['pval'] = pval
+        df['mean_log_expression'] = mu_n
 
         # reorder columns
-        df = df[['chr','start','end','strand','mu','phi','A','sigma2_mu','sigma2_A','sigma2_phi','R2','pval']]
+        df = df[['chr','start','end','strand','phase','amplitude','mean_log_expression','R2','pval']]
 
         # append to output table
         df_out = pd.concat([df_out,df],axis=0)
