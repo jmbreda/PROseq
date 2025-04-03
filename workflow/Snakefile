@@ -73,10 +73,10 @@ rule all:
         #
         # coverage
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
-        expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
+        #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb"),bin_size=config['Bin_size']),
@@ -88,8 +88,8 @@ rule all:
         #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
         #os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf")
         #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
-        expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bb"), strand=config['Strands']),
-        os.path.join("results",Species,"phase_amp","gene_antisense_phase_amp.csv"),
+        #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bb"), strand=config['Strands']),
+        #os.path.join("results",Species,"phase_amp","gene_antisense_phase_amp.csv"),
         #
         # Kalman
         #expand(os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] ),
@@ -97,8 +97,8 @@ rule all:
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
         #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
         #expand(os.path.join("results",Species,"kalman","average_LL_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #
         # Time-space Fourier
@@ -643,9 +643,27 @@ rule log_coverage_bw:
         rm {params.tmp_sorted}
         """
 
+rule noise_model:
+    input:
+        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands'])
+    output:
+        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"),
+        fig=os.path.join("results",Species,"fig","noise_model_{bin_size}bp.pdf")
+    params:
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+    threads: 12
+    shell:
+        """
+        python scripts/noise_model.py --bin_size {wildcards.bin_size} \
+                                      --out_table {output.noise_model_parameters} \
+                                      --out_fig {output.fig} \
+                                      --bw_folder {params.bw_folder}
+        """
+
 ##--------------------------------------##
 ##  Get bin phase and amplitude         ##
 ##--------------------------------------##
+
 rule get_overall_phase_amp:
     input:
         expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands']) # only for dependency
@@ -664,17 +682,19 @@ rule get_overall_phase_amp:
     
 rule get_bin_phase_amp:
     input:
-        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{{strand}}_bin{{bin_size}}bp.bw"), sample=config['Samples'])
+        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{{strand}}_bin{{bin_size}}bp.bw"), sample=config['Samples']),
+        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv")
     output:
         table=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.csv")
     params:
         bw_folder=os.path.join("results",Species,"binned_norm_coverage")
-    threads: 12
+    threads: 24
     shell:
         """
         python scripts/get_bin_phase_amp.py --bin_size {wildcards.bin_size} \
                                             --strand {wildcards.strand} \
                                             --bw_folder {params.bw_folder} \
+                                            --noise_model_parameters {input.noise_model_parameters} \
                                             --out_table {output.table}
         """
 
@@ -721,6 +741,7 @@ rule get_bin_mu_bedgraph:
 ##--------------------------------------##
 ##  Get gene phase and amplitude        ##
 ##--------------------------------------##
+
 rule get_gene_gtf:
     input:
         gtf=os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf")
@@ -806,22 +827,6 @@ rule get_gene_antisense_phase_amp:
 ##  Kalman Filter                       ##
 ##--------------------------------------##
 
-rule noise_model:
-    input:
-        bw=expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{{bin_size}}bp.bw"), sample=config['Samples'], strand=config['Strands'])
-    output:
-        noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"),
-        fig=os.path.join("results",Species,"fig","noise_model_{bin_size}bp.pdf")
-    params:
-        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
-    threads: 12
-    shell:
-        """
-        python scripts/noise_model.py --bin_size {wildcards.bin_size} \
-                                      --out_table {output.noise_model_parameters} \
-                                      --out_fig {output.fig} \
-                                      --bw_folder {params.bw_folder}
-        """
 
 rule Kalman_gene_smoothing:
     input:
@@ -944,6 +949,9 @@ rule plot_Kalman_smoothing:
                                              --out_ll {output.fig}
         """
 
+#############################################
+##  Continuous-time Extended Kalman Filter ##
+#############################################
 
 rule extended_kalman_on_expressed_regions:
     input:

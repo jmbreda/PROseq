@@ -25,3 +25,51 @@ def fourier_transform(x,T,ω):
     
 
     return φ_n, a_n, R2, pval, μ
+
+def fourier_transform_GLS(Y,T,ω,Λ):
+    
+    # Dimentions: n_bin = number of bins, n = number of time points
+    # Y: data (n_bin x n)
+    # T: Time points (n)
+    # ω: frequency 2πn/P (1)
+    # Λ: covariance matrix (n_bins x n x n)
+
+    if (Y.shape[1] != T.shape[0]) and (Y.shape[0] == T.shape[0]):
+        Y = Y.T
+    else:
+        print('Error: x dimensions are not correct x.shape[0] or x.shape[1] != len(T)')
+    
+    n_bin, n = Y.shape
+
+    # degree of freedom
+    p = 3
+    X = np.zeros((n, p))
+    X[:,0] = np.ones(n)
+    X[:,1] = np.cos(ω*T)
+    X[:,2] = np.sin(ω*T)
+
+    μ = np.zeros(n_bin)
+    A = np.zeros(n_bin)
+    φ = np.zeros(n_bin)
+    σ2_μ = np.zeros(n_bin)
+    σ2_A = np.zeros(n_bin)
+    σ2_φ = np.zeros(n_bin)
+    R2 = np.zeros(n_bin)
+    pval = np.zeros(n_bin)
+
+    for i in range(n_bin):
+        Σ = np.linalg.inv(X.T @ Λ[i] @ X)
+        β = Σ @ X.T @ Λ[i] @ Y[i]
+
+        μ[i], a, b = β
+        σ2_μ[i], σ2_a, σ2_b = np.diag(Σ)
+
+        A[i] = np.sqrt(a**2 + b**2)
+        φ[i] = np.arctan2(b, a)
+        σ2_A[i] = (np.abs(a)*σ2_a + np.abs(b)*σ2_b)/A[i]
+        σ2_φ[i] = (np.abs(b)*σ2_a + np.abs(a)*σ2_b)/A[i]**2
+        
+        R2 = 1 - (Y[i] - X @ β).var() / Y[i].var()
+        pval[i] = 1 - beta.cdf(R2, (p - 1) / 2, (n - p) / 2)
+
+    return μ, A, φ, σ2_μ, σ2_A, σ2_φ, R2, pval
