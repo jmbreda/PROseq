@@ -706,6 +706,18 @@ rule bin_bed_to_bigBed:
         rm {params.tmp_sorted}
         """
 
+rule get_bin_mu_bedgraph:
+    input:
+        table=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.csv")
+    output:
+        bed=os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bedgraph")
+    shell:
+        """
+        python scripts/get_bin_mu_bedgraph.py --in_table {input.table} \
+                                              --out_bed {output.bed}
+        """
+
+
 ##--------------------------------------##
 ##  Get gene phase and amplitude        ##
 ##--------------------------------------##

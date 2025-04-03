@@ -16,6 +16,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 if __name__ == '__main__':
     
     args = parse_args()
@@ -41,9 +42,9 @@ if __name__ == '__main__':
         fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{args.strand}_bin{args.bin_size}bp.bw"
         f[t] = bw.open(fin)
 
-    df_out = pd.DataFrame(columns=['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression'])
+    df_out = pd.DataFrame(columns=['chr','start','end','strand','mean','phase','amplitude','R2','pval'])
     for chr in CHR:
-
+        
         # fill in time points
         df_in = pd.DataFrame(columns=['start','end'])
         for t in T:
@@ -54,13 +55,12 @@ if __name__ == '__main__':
 
         X = df_in.loc[:,Samples].values
 
-        # keep only bins with less than 2 thirds nan values (at least 4 time points with data)
-        # idx_in = np.isnan(X).sum(1) <= 2*N/3
-        # X = X[idx_in,:]
+        # fill in missing values
         X[np.isnan(X)] = 0
 
         # log transform and add pseudo counts and sum for gene expression
-        X = np.log(X + 1)
+        mean_counts = np.mean(X,axis=1)
+        X = np.log2(X + 1)
 
         phi_n, a_n, R2, pval, mu_n = fourier_transform(X,T,omega_n)
 
@@ -69,14 +69,14 @@ if __name__ == '__main__':
         df = df_in.loc[:,['start','end']]
         df['chr'] = chr
         df['strand'] = strand_dict[args.strand]
+        df['mean'] = mu_n
         df['phase'] = phi_n
         df['amplitude'] = a_n
         df['R2'] = R2
         df['pval'] = pval
-        df['mean_log_expression'] = mu_n
 
         # reorder columns
-        df = df[['chr','start','end','strand','phase','amplitude','R2','pval','mean_log_expression']]
+        df = df[['chr','start','end','strand','mean','phase','amplitude','R2','pval']]
 
         # append to output table
         df_out = pd.concat([df_out,df],axis=0)
