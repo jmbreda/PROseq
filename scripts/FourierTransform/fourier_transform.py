@@ -4,8 +4,12 @@ from scipy.stats import beta
 def fourier_transform(x,T,ω):
 
     # x dimensions: (N x T)
-    if (x.shape[1] != T.shape[0]) and (x.shape[0] == T.shape[0]):
-        x = x.T
+
+    if (x.shape[1] != T.shape[0]):
+        if (x.shape[0] == T.shape[0]):
+            x = x.T
+        else:
+            print(f'Error: Y dimensions are not correct: x shape = {x.shape[0]}')
 
     N = T.shape[0]
     f_n = np.sum(x*np.exp(-1j*ω*T),1)
