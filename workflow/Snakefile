@@ -13,15 +13,15 @@ import pandas as pd
 #    return fq_files_list
 #
 # Get resources/filenames_to_sample.txt with scripts/make_sample_to_fastq.sh
-def get_se_fastq_per_sample(wildcards,Species):
-    samples = pd.read_csv(f"resources/SE_filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['seq_id'])
+def get_se_fastq_per_sample(wildcards):
+    samples = pd.read_csv(f"resources/SE_filenames_to_sample.txt", sep=" ", header=None, index_col=0, names=['seq_id'])
     fastq = [f'resources/fastq_trimmed/{f}_001.fastq.gz' for f in samples.at[wildcards.sample, 'seq_id'].split(',')]
     
     return fastq
 
-def get_pe_fastq_per_sample(wildcards,Species):
-    samples = pd.read_csv(f"resources/PE_filenames_to_sample.txt", sep="\t", header=None, index_col=0, names=['seq_id'])
-    fastq = [f'resources/fastq_trimmed/{f}_{wildcards.reads}_R1_001.fastq.gz' for f in samples.at[wildcards.sample, 'seq_id'].split(',')]
+def get_pe_fastq_per_sample(wildcards):
+    samples = pd.read_csv(f"resources/PE_filenames_to_sample.txt", sep=" ", header=None, index_col=0, names=['seq_id'])
+    fastq = [f'resources/fastq_trimmed/{f}_{wildcards.reads}_001.fastq.gz' for f in samples.at[wildcards.sample, 'seq_id'].split(',')]
     
     return fastq
 
@@ -53,9 +53,9 @@ Reads = ['R1','R2']
 rule all:
     input:
         # download gencode files
-        #os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
-        #os.path.join(config['outfold_genome'],Species,"cdna.fa"),
-        #os.path.join(config['outfold_genome'],Species,"genome.fa"),
+        os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
+        os.path.join(config['outfold_genome'],Species,"cdna.fa"),
+        os.path.join(config['outfold_genome'],Species,"genome.fa"),
         #
         # trimming and merging
         #expand(os.path.join(config['outfold_fastq_trimmed'],"{file}_R1_001.fastq.gz"), file=config['Fastq_Files']['SE']),
@@ -75,16 +75,16 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb"),bin_size=config['Bin_size']),
-        #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #
         # Phase and amplitude
-        expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
-        expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
+        #expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
+        #expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
         #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
         #os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf")
         #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
@@ -191,7 +191,7 @@ rule cutadapt_pe:
 
 rule merge_pe_fastq:
     input:
-        fastq_list = lambda wildcards: get_pe_fastq_per_sample(wildcards,Species)
+        fastq_list = lambda wildcards: get_pe_fastq_per_sample(wildcards)
     output:
         fastq = os.path.join(config['outfold_fastq_trimmed'],"{sample}_{reads}.fastq.gz")
     shell:
@@ -201,7 +201,7 @@ rule merge_pe_fastq:
 
 rule merge_se_fastq:
     input:
-        fastq_list = lambda wildcards: get_se_fastq_per_sample(wildcards,Species)
+        fastq_list = lambda wildcards: get_se_fastq_per_sample(wildcards)
     output:
         fastq = os.path.join(config['outfold_fastq_trimmed'],"{sample}_se.fastq.gz")
     shell:
