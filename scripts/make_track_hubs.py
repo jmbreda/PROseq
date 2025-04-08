@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     fout.write(f"track gene_kalman_smoothing_phase_{bin_size}_{strand[0]}\n")
                     fout.write("type bigBed 9\n")
                     fout.write("itemRgb on\n")
-                    fout.write(f"shortLabel Gene kalman phase {strand[0]} {bin_size//1000}kb\n")
+                    fout.write(f"shortLabel Gene kalman phase {strand[0]} {bin_size}bp\n")
                     fout.write(f"longLabel Gene phase by kalman filter {strand} strand mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                     fout.write(f"bigDataUrl {track_folder}/phase_amp/gene_kalman_phase_R2_{strand}_{bin_size}bp.bb\n")
                     if bin_size == 10000:
@@ -93,13 +93,13 @@ if __name__ == '__main__':
                     p+=1
 
             # Bed tracks with bin phase
-            for bin_size in [1000,10000]:
+            for bin_size in [100,1000,10000]:
                 for strand in Strands:
                     fout.write(f"track bin_phase_{bin_size}_{strand[0]}\n")
                     fout.write("type bigBed 9\n")
                     fout.write("itemRgb on\n")
-                    fout.write(f"shortLabel Bin phase {strand} {bin_size//1000}kb\n")
-                    fout.write(f"longLabel {strand} bin {bin_size//1000}kb phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
+                    fout.write(f"shortLabel Bin phase {strand} {bin_size}bp\n")
+                    fout.write(f"longLabel {strand} bin {bin_size}bp phase and amplitude mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                     fout.write(f"bigDataUrl {track_folder}/phase_amp/bin_phase_amp_{strand}_{bin_size}bp.bb\n")
                     if bin_size == 10000:
                         fout.write("visibility dense\n")
@@ -110,13 +110,13 @@ if __name__ == '__main__':
                     p += 1
 
             # bed tracks with extended kalman smoothing phase and amp on expressed regions
-            for bin_size in [1000,10000]:
+            for bin_size in [100,1000,10000]:
                 for strand in Strands:
                     fout.write(f"track cont_ext_kalman_phase_amp_{bin_size}_{strand[0]}\n")
                     fout.write("type bigBed 9\n")
                     fout.write("itemRgb on\n")
-                    fout.write(f"shortLabel Kalman phi amp {strand[0]} {bin_size//1000}kb\n")
-                    fout.write(f"longLabel Extended Kalman smoothing phase and amplitude {strand} strand {bin_size//1000}kb\n")
+                    fout.write(f"shortLabel Kalman phi amp {strand[0]} {bin_size}bp\n")
+                    fout.write(f"longLabel Extended Kalman smoothing phase and amplitude {strand} strand {bin_size}bp\n")
                     fout.write(f"bigDataUrl {track_folder}/kalman/extended_kalman_on_chromosomes_{strand}_bin{bin_size}bp_phi_amp.bb\n")
                     if bin_size == 10000:
                         fout.write("visibility dense\n")
@@ -127,13 +127,13 @@ if __name__ == '__main__':
                     p += 1
 
             # bed tracks with extended kalman smoothing loglikelihood (transformed in 0-1000 range) on expressed regions
-            for bin_size in [1000,10000]:
+            for bin_size in [100,1000,10000]:
                 for strand in Strands:
                     fout.write(f"track kalman_chromosomes_ll_{strand[0]}_{bin_size}\n")
                     fout.write("type bigWig\n")
                     fout.write("itemRgb on\n")
-                    fout.write(f"shortLabel Kalman LL {strand[0]} {bin_size//1000}kb\n")
-                    fout.write(f"longLabel Extended Kalman smoothing on expressed regions {strand} strand {bin_size//1000}kb\n")
+                    fout.write(f"shortLabel Kalman LL {strand[0]} {bin_size}bp\n")
+                    fout.write(f"longLabel Extended Kalman smoothing on expressed regions {strand} strand {bin_size}bp\n")
                     fout.write(f"bigDataUrl {track_folder}/kalman/extended_kalman_on_chromosomes_{strand}_bin{bin_size}bp_ll.bw\n")
                     if bin_size == 10000:
                         fout.write("visibility dense\n")
@@ -152,9 +152,9 @@ if __name__ == '__main__':
 
         
             # BigWig composite tracks with bin expression
-            for bin_size in [1000,10000]:
+            for bin_size in [100,1000,10000]:
                 for strand in Strands:
-                    fout.write(f"track PROseq_{strand}_{bin_size//1000}kb\n")
+                    fout.write(f"track PROseq_{strand}_{bin_size}bp\n")
                     fout.write("compositeTrack on\n")
                     fout.write("subGroup1 t Time CT00=00 CT04=04 CT08=08 CT12=12 CT16=16 CT20=20 CT28=28 CT24=24 CT32=32 CT36=36 CT40=40 CT44=44\n")
                     fout.write("dimensions dimX=t\n")
@@ -162,8 +162,8 @@ if __name__ == '__main__':
                     #fout.write("subGroup2 s Strand forward=forward reverse=reverse\n")
                     #fout.write("dimensions dimX=s dimY=t\n")
                     #fout.write("sortOrder s=+ t=+\n")
-                    fout.write(f"shortLabel PROseq {strand[0]} {bin_size//1000}kb\n")
-                    fout.write(f"longLabel PRO-seq data composite track {strand[0]} {bin_size//1000}kb (sum normed count per bin + 1, 1bp: norm count)\n")
+                    fout.write(f"shortLabel PROseq {strand[0]} {bin_size}bp\n")
+                    fout.write(f"longLabel PRO-seq data composite track {strand[0]} {bin_size}bp (sum normed count per bin + 1, 1bp: norm count)\n")
                     fout.write("type bigWig\n")
                     fout.write("visibility full\n")
                     fout.write("maxHeightPixels 100:30:8\n") # max:default:min
@@ -178,7 +178,7 @@ if __name__ == '__main__':
                         time = sample[2:]
 
                         fout.write(f"\ttrack {name}_{strand}_{bin_size}\n")
-                        fout.write(f"\tparent PROseq_{strand}_{bin_size//1000}kb on\n")
+                        fout.write(f"\tparent PROseq_{strand}_{bin_size}bp on\n")
                         #fout.write(f"\tsubGroups t={time} s={strand}\n")
                         fout.write(f"\tsubGroups t={sample}\n")
                         fout.write(f"\tshortLabel {sample}\n")
@@ -186,7 +186,7 @@ if __name__ == '__main__':
                         if bin_size == 1:
                             fout.write(f"\tbigDataUrl {track_folder}/norm_coverage/{sample}/NormCoverage_3p_{strand}.bw\n")
                         else:
-                            #fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/Log2NormCoverage_3p_{strand}_bin{bin_size//1000}kb.bw\n")
+                            #fout.write(f"\tbigDataUrl {track_hub_url}/tracks_bw/{sample}/Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                             fout.write(f"\tbigDataUrl {track_folder}/binned_norm_coverage/{sample}/NormCoverage_3p_{strand}_bin{bin_size}bp.bw\n")
                         fout.write("\ttype bigWig\n")
                         if strand == 'forward':

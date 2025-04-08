@@ -18,6 +18,7 @@ def parse_args():
     return args
 
 
+
 if __name__ == '__main__':
     
     args = parse_args()
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     # init output table and loop on chromosomes
     df_out = pd.DataFrame(columns=['chr','start','end','strand','mean_log_expression','phase','amplitude','sigma2_mu','sigma2_A','sigma2_phi','R2','pval'])
     for chr in CHR:
-
+        
         # fill in time points
         df_in = pd.DataFrame(columns=['start','end'])
         for t in T:
