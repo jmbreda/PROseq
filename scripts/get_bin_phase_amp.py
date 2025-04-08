@@ -104,6 +104,9 @@ if __name__ == '__main__':
         df = df[['chr','start','end','strand','mean_log_expression','phase','amplitude','sigma2_mu','sigma2_A','sigma2_phi','R2','pval']]
 
         # append to output table
-        df_out = pd.concat([df_out,df],axis=0)
+        if df_out.shape[0] == 0:
+            df_out = df
+        else:
+            df_out = pd.concat([df_out,df],axis=0)
     
     df_out.to_csv(args.out_table,sep='\t',index=False)

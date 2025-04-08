@@ -34,10 +34,11 @@ def fourier_transform_GLS(Y,T,ω,Λ):
     # ω: frequency 2πn/P (1)
     # Λ: covariance matrix (n_bins x n x n)
 
-    if (Y.shape[1] != T.shape[0]) and (Y.shape[0] == T.shape[0]):
-        Y = Y.T
-    else:
-        print('Error: x dimensions are not correct x.shape[0] or x.shape[1] != len(T)')
+    if (Y.shape[1] != T.shape[0]):
+        if (Y.shape[0] == T.shape[0]):
+            Y = Y.T
+        else:
+            print(f'Error: Y dimensions are not correct: Y shape = {Y.shape[0]}')
     
     n_bin, n = Y.shape
 
