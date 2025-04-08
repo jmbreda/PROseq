@@ -83,8 +83,8 @@ rule all:
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #
         # Phase and amplitude
-        #expand(os.path.join("results",Species,"phase_amp","overall_phase_amp_{bin_size}bp.csv"), bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),        
+        expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
+        expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
         #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
         #os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf")
         #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
@@ -96,6 +96,7 @@ rule all:
         #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
+        # cont time extended kalman
         #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
         #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
         #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
@@ -660,9 +661,9 @@ rule noise_model:
                                       --bw_folder {params.bw_folder}
         """
 
-##--------------------------------------##
-##  Get bin phase and amplitude         ##
-##--------------------------------------##
+##---------------------------------##
+##  Bin phase, amplitude and mean  ##
+##---------------------------------##
 
 rule get_overall_phase_amp:
     input:
@@ -688,7 +689,7 @@ rule get_bin_phase_amp:
         table=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.csv")
     params:
         bw_folder=os.path.join("results",Species,"binned_norm_coverage")
-    threads: 24
+    threads: 12
     shell:
         """
         python scripts/get_bin_phase_amp.py --bin_size {wildcards.bin_size} \
@@ -702,14 +703,16 @@ rule get_bin_phase_amp_bed:
     input:
         table=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.csv")
     output:
-        bed=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bed")
+        bed_A_phi=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bed"),
+        bed_mu=os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bedgraph")
     shell:
         """
         python scripts/get_bin_phase_amp_bed_track.py --in_table {input.table} \
-                                                      --out_bed {output.bed}
+                                                      --out_bed_A_phi {output.bed_A_phi} \
+                                                      --out_bedgraph_mu {output.bed_mu}
         """
 
-rule bin_bed_to_bigBed:
+rule bin_A_phi_bed_to_bigBed:
     input:
         bed=os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bed"),
         chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
@@ -725,6 +728,21 @@ rule bin_bed_to_bigBed:
         bedToBigBed {params.tmp_sorted} {input.chrom_size} {output.bb}
         rm {params.tmp_sorted}
         """
+
+rule bin_mean_mu_bed_to_bw:
+    input:
+        bg=os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bedgraph"),
+        chrom_size=os.path.join(config['outfold_genome'],Species,"chrom.sizes")
+    output:
+        bw=os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw")
+    params:
+        tmp_sorted=os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.sorted.bedgraph")
+    shell:
+        """
+        sort -k 1,1 -k2,2n {input.bg} > {params.tmp_sorted}
+        bedGraphToBigWig {params.tmp_sorted} {input.chrom_size} {output.bw}
+        rm {params.tmp_sorted}
+        """        
 
 ##--------------------------------------##
 ##  Get gene phase and amplitude        ##
@@ -937,9 +955,9 @@ rule plot_Kalman_smoothing:
                                              --out_ll {output.fig}
         """
 
-#############################################
-##  Continuous-time Extended Kalman Filter ##
-#############################################
+##--------------------------------------------##
+##  Continuous-time Extended Kalman Filter    ##
+##--------------------------------------------##
 
 rule extended_kalman_on_expressed_regions:
     input:
@@ -989,7 +1007,7 @@ rule extended_kalman_on_chromosomes:
                                                                --threads {threads}
         """
 
-rule extended_kalman_on_expressed_regions_bed:
+rule extended_kalman_bed:
     input:
         kalman=os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv")
     output:

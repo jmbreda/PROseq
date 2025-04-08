@@ -8,7 +8,8 @@ from phase_to_labcolor import phase_to_labcolor as p2lc
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene amp phase')
     parser.add_argument('--in_table', help='Input phase & amplitude table',type=str)
-    parser.add_argument('--out_bed', help='Output bed file', type=str)
+    parser.add_argument('--out_bed_A_phi', help='Output bed file with phase and amplitude', type=str)
+    parser.add_argument('--out_bedgraph_mu', help='Output bed file with mean log2 expression', type=str)
     args = parser.parse_args()
     return args
 
@@ -139,4 +140,13 @@ if __name__ == '__main__':
     bed.sort_values(['chrom','chromStart'],inplace=True)
     
     # save bed file
-    bed.to_csv(args.out_bed,sep='\t',index=False,header=False)
+    bed.to_csv(args.out_bed_A_phi,sep='\t',index=False,header=False)
+
+    # save bedgraph file with mean log expression
+    bedgraph = pd.DataFrame(columns=['chrom','start','end','score'])
+    bedgraph['chrom'] = df['chr']
+    bedgraph['start'] = df['start']
+    bedgraph['end'] = df['end']
+    bedgraph['score'] = df['mean_log_expression']
+    bedgraph.sort_values(['chrom','start'],inplace=True)
+    bedgraph.to_csv(args.out_bedgraph_mu,sep='\t',index=False,header=False)

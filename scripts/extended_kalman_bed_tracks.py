@@ -36,7 +36,7 @@ if __name__ == '__main__':
     μ = kalman['a'].values + 1j*kalman['b'].values
     amp = 4/m * np.abs(μ)
     φ = -np.arctan2(kalman['b'].values,kalman['a'].values)
-    threshold_amp = 1
+    threshold_amp = .5
     rgb = p2lc(φ,amp,threshold_amp)
 
     # bed phase
