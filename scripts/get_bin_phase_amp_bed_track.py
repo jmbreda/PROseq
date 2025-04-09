@@ -109,35 +109,36 @@ if __name__ == '__main__':
     bed.sort_values(['chrom','chromStart'],inplace=True)
 
     # fill empty bins with black
-    empty_intervals = pd.DataFrame(columns=bed_cols)
-    for chr in CHR:
-        for strand in Strands:
-            #find empty bins
-            starts = bed.loc[(bed.chrom==chr) & (bed.strand==strand),'chromStart'].values[1:]
-            ends = bed.loc[(bed.chrom==chr) & (bed.strand==strand),'chromEnd'].values[:-1]
-            idx_empty = starts != ends
-            new_starts = ends[idx_empty]
-            new_ends = starts[idx_empty]
-
-            new_bed = pd.DataFrame(columns=bed_cols)
-            
-            new_bed['chromStart'] = new_starts
-            new_bed['chromEnd'] = new_ends
-            new_bed['chrom'] = chr
-            new_bed['name'] = 'no_read|' + strand
-            new_bed['score'] = 0
-            new_bed['strand'] = strand
-            new_bed['thickStart'] = new_starts
-            new_bed['thickEnd'] = new_ends
-            new_bed['itemRgb'] = '0,0,0'
-            new_bed['blockCount'] = 1
-            new_bed['blockSizes'] = new_ends - new_starts
-            new_bed['blockStarts'] = 0
-
-            empty_intervals = pd.concat([empty_intervals,new_bed],ignore_index=True)
-
-    bed = pd.concat([bed,empty_intervals],ignore_index=True)
-    bed.sort_values(['chrom','chromStart'],inplace=True)
+    if False:
+        empty_intervals = pd.DataFrame(columns=bed_cols)
+        for chr in CHR:
+            for strand in Strands:
+                #find empty bins
+                starts = bed.loc[(bed.chrom==chr) & (bed.strand==strand),'chromStart'].values[1:]
+                ends = bed.loc[(bed.chrom==chr) & (bed.strand==strand),'chromEnd'].values[:-1]
+                idx_empty = starts != ends
+                new_starts = ends[idx_empty]
+                new_ends = starts[idx_empty]
+    
+                new_bed = pd.DataFrame(columns=bed_cols)
+                
+                new_bed['chromStart'] = new_starts
+                new_bed['chromEnd'] = new_ends
+                new_bed['chrom'] = chr
+                new_bed['name'] = 'no_read|' + strand
+                new_bed['score'] = 0
+                new_bed['strand'] = strand
+                new_bed['thickStart'] = new_starts
+                new_bed['thickEnd'] = new_ends
+                new_bed['itemRgb'] = '0,0,0'
+                new_bed['blockCount'] = 1
+                new_bed['blockSizes'] = new_ends - new_starts
+                new_bed['blockStarts'] = 0
+    
+                empty_intervals = pd.concat([empty_intervals,new_bed],ignore_index=True)
+    
+        bed = pd.concat([bed,empty_intervals],ignore_index=True)
+        bed.sort_values(['chrom','chromStart'],inplace=True)
     
     # save bed file
     bed.to_csv(args.out_bed_A_phi,sep='\t',index=False,header=False)

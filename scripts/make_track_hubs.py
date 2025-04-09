@@ -69,6 +69,10 @@ if __name__ == '__main__':
                 fout.write(f"longLabel Gene phase and amplitude {strand[0]} strand, mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                 fout.write(f"bigDataUrl {track_folder}/phase_amp/gene_phase_amp_{strand}.bb\n")
                 fout.write("visibility pack\n")
+                if strand == 'forward':
+                    fout.write("\tcolor 0,0,255\n")
+                elif strand == 'reverse':
+                    fout.write("\tcolor 255,0,0\n")
                 fout.write(f"priority {p}\n")
                 fout.write("\n")
             
@@ -87,6 +91,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
+                    if strand == 'forward':
+                        fout.write("\tcolor 0,0,255\n")
+                    elif strand == 'reverse':
+                        fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
 
@@ -101,10 +109,15 @@ if __name__ == '__main__':
                     fout.write(f"shortLabel Bin mu {strand[0]} {Bin_size[bin_size]}\n")
                     fout.write(f"longLabel Bin mean log2 {strand} {Bin_size[bin_size]}\n")
                     fout.write(f"bigDataUrl {track_folder}/phase_amp/bin_mu_{strand}_{bin_size}bp.bw\n")
+                    fout.write("maxHeightPixels 100:20:8\n") # max:default:min
                     if bin_size == 10000:
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
+                    if strand == 'forward':
+                        fout.write("\tcolor 0,0,255\n")
+                    elif strand == 'reverse':
+                        fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
@@ -122,6 +135,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
+                    if strand == 'forward':
+                        fout.write("\tcolor 0,0,255\n")
+                    elif strand == 'reverse':
+                        fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
@@ -139,6 +156,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
+                    if strand == 'forward':
+                        fout.write("\tcolor 0,0,255\n")
+                    elif strand == 'reverse':
+                        fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
