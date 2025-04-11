@@ -16,6 +16,7 @@ URLs:
 outfold_genome:             "resources/genome"
 outfold_fastq:              "resources/fastq"
 outfold_fastq_trimmed:      "resources/fastq_trimmed"
+track_hub_folder: "/data/shared/sv-open/sites/PROseq"
 
 Bin_size:
     - '100'
@@ -158,3 +159,9 @@ Extended_kalman:
     Genomic_regions:
         - chromosomes
         #- expressed_regions
+
+Track_hub_files:
+    - hub.txt
+    - genomes.txt
+    - url.txt
+    - mm10/trackDb.txt

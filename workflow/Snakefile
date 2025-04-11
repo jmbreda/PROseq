@@ -75,16 +75,16 @@ rule all:
         #expand(os.path.join("results",Species,"coverage","{sample}","coverage_3p_{strand}.bedgraph"), sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"norm_coverage","{sample}","NormCoverage_3p_{strand}.bw"),sample=config['Samples'], strand=config['Strands']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expression_tables","bin_expression_table_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.csv"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bed"),bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"binned_norm_coverage","expressed_regions_bin{bin_size}bp.bb"),bin_size=config['Bin_size']),
-        expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+        #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #
         # Phase and amplitude
-        #expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
-        #expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
+        # expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
+        # expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
         #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
         #os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf")
         #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
@@ -108,6 +108,12 @@ rule all:
         #expand(os.path.join("results",Species,"kalman","mu_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"kalman","sigma_{win_size}_{d_win}_{chr}_{bin_size}bp.npy"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"fig","kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size'])
+        #
+        # Track hub
+        hub=os.path.join(config['track_hub_folder'],"hub.txt"),
+        genome=os.path.join(config['track_hub_folder'],"genome.txt"),
+        url=os.path.join(config['track_hub_folder'],"url.txt"),
+        trackDb=os.path.join(config['track_hub_folder'],"mm10","trackDb.txt")
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -1116,88 +1122,28 @@ rule plot_time_space_fourier_transform:
 ##  Track Hub                           ##
 ##--------------------------------------##
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##----------------------------------------##
-##  Generate STAR genome index and align  ##
-##----------------------------------------##
-#rule star_genome_index:
-#    input:
-#        genome = os.path.join(config['outfold_genome'],Species,"genome.fa"),
-#        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
-#    output:
-#        genome_dir = directory(os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/"))
-#    params:
-#        limitram = 200000000000,
-#        overhang = config['read_length']['PE']-1
-#    threads: 24
-#    shell:
-#        """
-#        if [ ! $(hostname -s) == "haas005" ]; then
-#            module load gcc/11.3.0 star
-#        fi
-#        mkdir -p {output.genome_dir}
-#        STAR --runMode genomeGenerate \
-#             --genomeDir {output.genome_dir} \
-#             --genomeFastaFiles {input.genome} \
-#             --sjdbGTFfile {input.gtf} \
-#             --sjdbOverhang {params.overhang} \
-#             --limitGenomeGenerateRAM {params.limitram} \
-#             --runThreadN {threads}
-#        """
-
-# first run scripts/make_samples_to_fastq.sh to generate resources/sample_to_fastq_Run{i}.txt
-#rule star_align:
-#    input:
-#        fq_files = get_fastq_list, # get_fastq_list is a function that returns a list of trimmed fastq files for a given sample (for dependence only)
-#        gtf = os.path.join(config['outfold_genome'],Species,"gene_annotation.gtf"),
-#        genome_dir = os.path.join(config['outfold_genome'],Species,f"star_index_{config['read_length']['PE']-1}/")
-#    output:
-#        os.path.join("results",Species,"star","{sample}","Aligned.sortedByCoord.out.bam"),
-#        os.path.join("results",Species,"star","{sample}","Log.final.out")
-#    params:
-#        fq_cmd_str = get_samples_fastq_files, # get_samples_fastq_files is a function that returns a string of trimmed fastq files for a given sample
-#        prefix=os.path.join("results",Species,"star","{sample}/"),
-#        outsamtype = "BAM SortedByCoordinate",
-#        limitram = 120000000000,
-#        minlen = 16
-#    threads: 12
-#    shell:
-#        """
-#        if [ ! $(hostname -s) == "haas005" ]; then
-#            module load gcc/11.3.0 star
-#        fi
-#        STAR --runMode alignReads \
-#             --genomeDir {input.genome_dir} \
-#             --readFilesIn {params.fq_cmd_str} \
-#             --runThreadN {threads} \
-#             --readFilesCommand gunzip -c \
-#             --outFileNamePrefix {params.prefix} \
-#             --outSAMtype {params.outsamtype} \
-#             --limitBAMsortRAM {params.limitram} \
-#             --sjdbGTFfile {input.gtf} \
-#             --outFilterMatchNminOverLread 0 \
-#             --outFilterMatchNmin {params.minlen}
-#        """
+rule make_track_hub:
+    input:
+        gene_A_phi_bb=   expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bb"), strand=config['Strands']),
+        bin_mu_bw=       expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), strand=config['Strands'], bin_size=config['Bin_size']),
+        bin_A_phi_bb=    expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), strand=config['Strands'], bin_size=config['Bin_size']),
+        kalman_phi_A_bb= expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), region=config['Extended_kalman']['Genomic_regions'], strand=config['Strands'], bin_size=config['Bin_size']),
+        kalman_ll_bw=    expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), region=config['Extended_kalman']['Genomic_regions'], strand=config['Strands'], bin_size=config['Bin_size']),
+        coverage_bw=     expand(os.path.join("results",Species,"binned_norm_coverage","{sample}","NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
+    output:
+        hub=os.path.join(config['track_hub_folder'],"hub.txt"),
+        genome=os.path.join(config['track_hub_folder'],"genome.txt"),
+        url=os.path.join(config['track_hub_folder'],"url.txt"),
+        trackDb=os.path.join(config['track_hub_folder'],"mm10","trackDb.txt")
+    params:
+        track_hub_folder=config['track_hub_folder'],
+    shell:
+        """
+        mkdir -p {params.track_hub_folder}
+        python scripts/make_track_hubs.py --track_hub_name PROseq \
+                                          --track_hub_folder {params.track_hub_folder} \
+                                          --hub {output.hub} \
+                                          --genome {output.genome} \
+                                          --url {output.url} \
+                                          --trackDb {output.trackDb}
+        """

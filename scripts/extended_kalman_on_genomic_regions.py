@@ -96,8 +96,6 @@ def get_data(coord, bw_folder, bin_size):
     df.reset_index(inplace=True,drop=True)
 
     # replace start and end with position in the middle of the bin, and set as index
-    start = df.start.values
-    end = df.end.values
     df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
     df.drop('end',axis=1,inplace=True)
     df.columns = ['pos'] + df.columns[1:].tolist()

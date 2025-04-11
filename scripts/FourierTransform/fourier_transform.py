@@ -59,7 +59,7 @@ def fourier_transform_GLS(Y,T,ω,Λ):
     σ2_μ = np.zeros(n_bin)
     σ2_A = np.zeros(n_bin)
     σ2_φ = np.zeros(n_bin)
-    R2 = np.zeros(n_bin)
+    r2 = np.zeros(n_bin)
     pval = np.zeros(n_bin)
 
     for i in range(n_bin):
@@ -74,7 +74,7 @@ def fourier_transform_GLS(Y,T,ω,Λ):
         σ2_A[i] = (np.abs(a)*σ2_a + np.abs(b)*σ2_b)/A[i]
         σ2_φ[i] = (np.abs(b)*σ2_a + np.abs(a)*σ2_b)/A[i]**2
         
-        R2 = 1 - (Y[i] - X @ β).var() / Y[i].var()
-        pval[i] = 1 - beta.cdf(R2, (p - 1) / 2, (n - p) / 2)
+        r2[i] = 1 - (Y[i] - X @ β).var() / Y[i].var()
+        pval[i] = 1 - beta.cdf(r2[i], (p - 1) / 2, (n - p) / 2)
 
-    return μ, A, φ, σ2_μ, σ2_A, σ2_φ, R2, pval
+    return μ, A, φ, σ2_μ, σ2_A, σ2_φ, r2, pval

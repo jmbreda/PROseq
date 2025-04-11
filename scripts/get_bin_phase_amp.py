@@ -84,7 +84,7 @@ if __name__ == '__main__':
             Λ[i] = np.diag(1/σ2[i])
 
         # run GLS harmonic regression
-        mu, A, phi, sigma2_mu, sigma2_A, sigma2_phi, R2, pval = fourier_transform_GLS(X,T,omega_n,Λ)
+        mu, A, phi, sigma2_mu, sigma2_A, sigma2_phi, r2, pval = fourier_transform_GLS(X,T,omega_n,Λ)
 
         # phase and amplitude
         df = pd.DataFrame()
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         df['sigma2_mu'] = sigma2_mu
         df['sigma2_A'] = sigma2_A
         df['sigma2_phi'] = sigma2_phi
-        df['R2'] = R2
+        df['R2'] = r2
         df['pval'] = pval
 
         # reorder columns
