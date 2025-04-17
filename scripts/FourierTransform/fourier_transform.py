@@ -54,9 +54,13 @@ def fourier_transform_GLS(Y,T,ω,Λ):
     X[:,2] = np.sin(ω*T)
 
     μ = np.zeros(n_bin)
+    a = np.zeros(n_bin)
+    b = np.zeros(n_bin)
     A = np.zeros(n_bin)
     φ = np.zeros(n_bin)
     σ2_μ = np.zeros(n_bin)
+    σ2_a = np.zeros(n_bin)
+    σ2_b = np.zeros(n_bin)
     σ2_A = np.zeros(n_bin)
     σ2_φ = np.zeros(n_bin)
     r2 = np.zeros(n_bin)
@@ -66,15 +70,15 @@ def fourier_transform_GLS(Y,T,ω,Λ):
         Σ = np.linalg.inv(X.T @ Λ[i] @ X)
         β = Σ @ X.T @ Λ[i] @ Y[i]
 
-        μ[i], a, b = β
-        σ2_μ[i], σ2_a, σ2_b = np.diag(Σ)
+        μ[i], a[i], b[i] = β
+        σ2_μ[i], σ2_a[i], σ2_b[i] = np.diag(Σ)
 
-        A[i] = np.sqrt(a**2 + b**2)
-        φ[i] = np.arctan2(b, a)
-        σ2_A[i] = (np.abs(a)*σ2_a + np.abs(b)*σ2_b)/A[i]
-        σ2_φ[i] = (np.abs(b)*σ2_a + np.abs(a)*σ2_b)/A[i]**2
-        
         r2[i] = 1 - (Y[i] - X @ β).var() / Y[i].var()
         pval[i] = 1 - beta.cdf(r2[i], (p - 1) / 2, (n - p) / 2)
 
-    return μ, A, φ, σ2_μ, σ2_A, σ2_φ, r2, pval
+    A = np.sqrt(a**2 + b**2)
+    φ = np.arctan2(b, a)
+    σ2_A = (np.abs(a)*σ2_a + np.abs(b)*σ2_b)/A
+    σ2_φ = (np.abs(b)*σ2_a + np.abs(a)*σ2_b)/A**2
+
+    return μ, a, b, A, φ, σ2_μ, σ2_a, σ2_b, σ2_A, σ2_φ, r2, pval

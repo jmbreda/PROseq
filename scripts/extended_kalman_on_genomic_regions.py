@@ -133,7 +133,7 @@ def get_kf_parameters(bin_size):
     # mean of k(t) [rad/kb]
     k_mu = k_mean
     # variance k(t) process
-    sigma_k = 2*k_mu # variance k(t) process of the same order of magnitude as the signal
+    sigma_k = k_mu # variance k(t) process of the same order of magnitude as the signal
     eps_k = sigma_k * np.sqrt(2*gamma_k)
 
     # rate of mean reversion of λ(t)
