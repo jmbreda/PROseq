@@ -37,15 +37,15 @@ def parse_args():
     return args
 
 # Define the analytical solution of the ODE
-def f_analytical_solution(Δt, x0, γ_k, k_μ, γ_l):
+def f_analytical_solution(Δx, x0, γ_k, k_μ, γ_l, l_μ):
     a0, b0, k0, λ0 = x0
 
     # Calculate k(t), lambda(t), a(t) and b(t)
-    k_t = np.exp(-γ_k*Δt) * (k0 - k_μ) + k_μ
-    λ_t = np.exp(-γ_l*Δt) * λ0
+    k_t = np.exp(-γ_k*Δx) * (k0 - k_μ) + k_μ
+    λ_t = np.exp(-γ_l*Δx) * (λ0 - l_μ) + l_μ
 
-    argument =  (k0 - k_t)/γ_k + k_μ * Δt
-    factor = np.exp( (λ0-λ_t)/γ_l )
+    argument =  (k0 - k_t)/γ_k + k_μ * Δx
+    factor = np.exp( (λ0-λ_t)/γ_l + l_μ * Δx )
 
     a_t = factor * ( a0 * np.cos(argument) - b0 * np.sin(argument) )
     b_t = factor * ( b0 * np.cos(argument) + a0 * np.sin(argument) )
@@ -64,17 +64,32 @@ def F_jacobian(x, γ_k, γ_l):
 
 # Define measurement function: inverse fourier transform
 def h(x,ω,T):
-    H = np.array([np.cos(ω*T), -np.sin(ω*T), np.zeros(T.shape[0]), np.zeros(T.shape[0])]).T *2/T.shape[0]
+    H = np.array([np.cos(ω*T), np.sin(ω*T), np.zeros(T.shape[0]), np.zeros(T.shape[0])]).T
     return H @ x
 
 # Define the Jacobian of h
 def H_jacobian(x,ω,T):
-    return np.array([np.cos(ω*T), -np.sin(ω*T), np.zeros(T.shape[0]), np.zeros(T.shape[0])]).T *2/T.shape[0]
+    return np.array([np.cos(ω*T), np.sin(ω*T), np.zeros(T.shape[0]), np.zeros(T.shape[0])]).T
 
-# P(t)' = F(t)P(t) + P(t)F(t)^T + Q
-def dPdt(x,P,F,Q):
-    P = P.reshape((4, 4))  # Reshape the 1D array P into a 3x3 matrix
-    return (F @ P + P @ F.T + Q).flatten() # Flatten the 3x3 matrix to a 1D array of size 9
+# P(x)' = F(x)P(x) + P(x)F(x)^T + Q
+def dPdx(Δx, P, Q, x0, γ_k, k_μ, γ_l, l_μ): # P is a 1D array of size 16 
+    # Reshape the 1D array P into a matrix
+    n = x0.shape[0]
+    P = P.reshape((n, n))
+    x = f_analytical_solution(Δx, x0, γ_k, k_μ, γ_l, l_μ)
+    F = F_jacobian(x, γ_k, γ_l) # compute the Jacobian at the current state x
+    out = F @ P + P @ F.T + Q
+    # make sure the output is symmetric and return it as a 1D array
+    return ((out + out.T) / 2).flatten()
+
+# Solve time-evolved transition for backward smoothing
+def dPhidx(Δx,Φ,x0, γ_k, k_μ, γ_l, l_μ):
+    n = x0.shape[0]
+    Φ = Φ.reshape((n, n))
+    x = f_analytical_solution(Δx, x0, γ_k, k_μ, γ_l, l_μ)
+    F = F_jacobian(x, γ_k, γ_l)
+    dΦdx = F @ Φ
+    return dΦdx.flatten()
 
 # get expression per bin in a given region
 def get_data(coord, bw_folder, bin_size):
