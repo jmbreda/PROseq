@@ -19,7 +19,7 @@ outfold_fastq_trimmed:      "resources/fastq_trimmed"
 track_hub_folder: "/data/shared/sv-open/sites/PROseq"
 
 Bin_size:
-    - '100'
+    #- '100'
     - '1000'
     - '10000'
 

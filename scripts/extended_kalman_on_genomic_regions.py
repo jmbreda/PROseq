@@ -17,6 +17,10 @@ def parse_args():
                         help='Bin size',
                         default=1000,
                         type=int)
+    parser.add_argument('--pseudo_count',
+                        help='Pseudo count',
+                        default=8,
+                        type=float)
     parser.add_argument('--regions',
                         default=None,
                         help='bed file (rows: genomic position | cols: chr, start, end) no header',
@@ -115,36 +119,35 @@ def dPhidx(Δx,Φ,x0, γ_k, k_μ, γ_l, l_μ):
     return dΦdx.flatten()
 
 # get expression per bin in a given region
-def get_data(coord, bw_folder, bin_size):
+def get_data(coord, args):
 
     T = np.arange(0,48,4)
     strand_dict = {'+': 'forward', '-': 'reverse'}
-
     [chr,start,end,strand] = coord.split(':')
 
     # get data from bigWigs
     df = pd.DataFrame(columns=['start','end'])
     for t in T:
         sample = f'CT{t:02d}'
-        fin = f"{bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{bin_size}bp.bw"
+        fin = f"{args.bw_folder}/{sample}/NormCoverage_3p_{strand_dict[strand]}_bin{args.bin_size}bp.bw"
         bw_file = bw.open(fin)
         df_t = pd.DataFrame(bw_file.intervals(chr,int(start),int(end)),columns=['start','end',f"{t}"])
         df = pd.merge(df,df_t,on=['start','end'],how='outer')
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)
 
-    # replace start and end with position in the middle of the bin, and set as index
-    df['start'] = ( (df.start.values + df.end.values)/2 ).astype(int) # bp
-    df.drop('end',axis=1,inplace=True)
-    df.columns = ['pos'] + df.columns[1:].tolist()
+    # get position in the middle of the bin, and set as index
+    df['pos'] = ( df['start'] + df['end'] ) / 2
     df.set_index('pos',inplace=True)
 
     # fill missing values with 0, add pseudo count, log2 transform
-    df = df.infer_objects(copy=False)
-    df.fillna(0,inplace=True)
-    df = df.apply(lambda x: np.log2(x+1),axis=1)
+    cols = [str(t) for t in T]
+    df[cols] = df[cols].fillna(0).apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
+    #df = df.infer_objects(copy=False)
+    #df.fillna(0,inplace=True)
+    #df = df.apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
     
-    return df, start, end
+    return df
 
 # get extended kalman filter parameters
 def get_kf_parameters():
@@ -198,7 +201,7 @@ def get_kf_parameters():
 def is_invertible(a):
     return a.shape[0] == a.shape[1] and np.linalg.matrix_rank(a) == a.shape[0]
 
-def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
+def extended_kalman(args, Noise_params, kf_parameters, coord):
 
     # get parameters
     T = kf_parameters['T']
@@ -230,10 +233,10 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
 
     # get data
     [chr,start,end,strand] = coord.split(':')
-    df,starts,ends = get_data(coord,bw_folder,bin_size)
-    positions = df.index/bin_size # positions [kb]
-    measurments = df.values.T # time x position
-    del df
+    df = get_data(coord,args)
+    positions = df.index*1e-3 # positions [kb]
+    measurments = df[[str(t) for t in T]].values.T # time x position
+
     # flip if strand is '-'
     if strand == '-':
         measurments = measurments[:,::-1]
@@ -241,6 +244,7 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
     X = measurments - np.mean(measurments,axis=0,keepdims=True)
     N_bins = X.shape[1]
 
+    # exit if no data
     if N_bins == 0:
         return None
 
@@ -254,14 +258,13 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
         r_i[measurments[:,i] < Noise_params['m_err_max']] = Noise_params['err_max']
         R[i,:,:] = np.diag(r_i)
 
-    # EKF implementation
-    # compute amplitude and phase by GLS
-    μ_gls, a_gls, b_gls, A_gls, φ_gls, σ2_μ_gls, σ2_a_gls, σ2_b_gls, σ2_A_gls, σ2_φ_gls, r2_gls, pval_gls = fourier_transform_GLS(X.T,T,ω,R)
-
     # Initial state estimate and covariance
     n0 = 10
-    a0 = np.mean(a_gls[:n0])
-    b0 = np.mean(b_gls[:n0])
+    # compute amplitude and phase by GLS
+    μ_gls, a_gls, b_gls, A_gls, φ_gls, σ2_μ_gls, σ2_a_gls, σ2_b_gls, σ2_A_gls, σ2_φ_gls, r2_gls, pval_gls = fourier_transform_GLS(X[:,:n0].T,T,ω,R[:n0])
+    # compute mean of the GLS estimates
+    a0 = np.mean(a_gls)
+    b0 = np.mean(b_gls)
     k0 = k_mu
     λ0 = l_mu
     x0 = np.array([a0,b0,k0,λ0])
@@ -323,7 +326,7 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
         Φ_0 = I_n # initial condition for the time-evolved transition
         solPhi = solve_ivp(dPhidx, t_span=[0, Δx], y0=Φ_0.flatten(), t_eval=[Δx], args=(x_pred[k], gamma_k, k_mu, gamma_l, l_mu),method='RK45')
         Φ_sol = solPhi.y[:, -1].reshape((n, n))
-        J = np.linalg.solve(P_pred[k+1], (Φ_sol[k] @ P_est[k]).T)
+        J = np.linalg.solve(P_pred[k+1], (Φ_sol @ P_est[k]).T)
         x_smooth[k] = x_est[k] + J @ (x_smooth[k+1] - x_pred[k+1])
         P_smooth[k] = P_est[k] + J @ (P_smooth[k+1] - P_pred[k+1]) @ J.T
         P_smooth[k] = (P_smooth[k] + P_smooth[k].T) / 2 + I_n*ε
@@ -354,15 +357,15 @@ def extended_kalman(bw_folder, bin_size, Noise_params, kf_parameters, coord):
     σ_φ = np.sqrt( b*b*σ2_a + a*a*σ2_b - 2*a*b*σ_ab )/(a*a+b*b)
 
     # Save results in a dataframe
-    df = pd.DataFrame(columns=['chr','start','end','strand','LL','a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi'])
-    df.start = starts
-    df.end = ends
-    df.chr = chr
-    df.strand = strand
-    df.LL = LL
-    df.loc[:,['a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi']] = np.array([a,σ2_a,b,σ2_b,σ_ab,k,σ2_k,λ,σ2_λ,A,σ_A,φ,σ_φ]).T
+    df_out = pd.DataFrame(columns=['chr','start','end','strand','LL','a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi'])
+    df_out.start = df['start']
+    df_out.end = df['end']
+    df_out.chr = chr
+    df_out.strand = strand
+    df_out.LL = LL
+    df_out.loc[:,['a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi']] = np.array([a,σ2_a,b,σ2_b,σ_ab,k,σ2_k,λ,σ2_λ,A,σ_A,φ,σ_φ]).T
 
-    return df
+    return df_out
 
 
 if __name__ == '__main__':
@@ -385,49 +388,26 @@ if __name__ == '__main__':
     fin.close()
 
     # get kalman filter model parameters
-    kf_parameters = get_kf_parameters(args.bin_size)
+    kf_parameters = get_kf_parameters()
 
-    # parralelize
-    if False:
-        df_out = pd.DataFrame(columns=['chr','start','end','strand','a','b','k','λ','LL'])
-        df_out.loc[0,:] = ['chr0',0,1,'+']+[0.0]*5
-        dtypes = {'chr':'str','start':'int','end':'int','strand':'str','a':'float','b':'float','k':'float','λ':'float','LL':'float'}
-        df_out = df_out.astype(dtypes)
+    # get coordinates list
+    COORD = []
+    for idx_region in genomic_regions.index:
+        [chr,start,end] = genomic_regions.loc[idx_region,['chr','start','end']]
+        for strand in ['+','-']:
+            coord = f'{chr}:{start}:{end}:{strand}'
+            COORD.append(coord)
 
-        for idx_region in genomic_regions.index[:10]:
-
-            # get data
-            [chr,start,end] = genomic_regions.loc[idx_region,['chr','start','end']]
-
-            for strand in ['+','-']:
-                coord = f'{chr}:{start}:{end}:{strand}'
-                print(coord)
-
-                df = extended_kalman(args.bw_folder, args.bin_size, Noise_params, kf_parameters,coord)
-                df_out = pd.concat([df_out,df],ignore_index=True,axis=0)
-
-        df_out.to_csv(args.out_table,index=False,sep='\t')
-    else:
-            
-        # get coordinates list
-        COORD = []
-        for idx_region in genomic_regions.index:
-            [chr,start,end] = genomic_regions.loc[idx_region,['chr','start','end']]
-            for strand in ['+','-']:
-                coord = f'{chr}:{start}:{end}:{strand}'
-                COORD.append(coord)
+    # run Kalman filter
+    #COORD = COORD[:240]
+    with Pool(processes=args.threads) as pool:
+        OUT = pool.map(partial(extended_kalman, args, Noise_params, kf_parameters),COORD)
 
 
-        # run Kalman filter
-        #COORD = COORD[:240]
-        with Pool(processes=args.threads) as pool:
-            OUT = pool.map(partial(extended_kalman, args.bw_folder, args.bin_size, Noise_params, kf_parameters),COORD)
+    df_out = OUT[0]
+    for df in OUT[1:]:
+        if df is not None:
+            df_out = pd.concat([df_out,df],ignore_index=True,axis=0)
 
 
-        df_out = OUT[0]
-        for df in OUT[1:]:
-            if df is not None:
-                df_out = pd.concat([df_out,df],ignore_index=True,axis=0)
-
-
-        df_out.to_csv(args.out_table,index=False,sep='\t')
+    df_out.to_csv(args.out_table,index=False,sep='\t')
