@@ -22,14 +22,15 @@ def parse_args():
                         default=8,
                         type=float)
     parser.add_argument('--regions',
-                        default=None,
                         help='bed file (rows: genomic position | cols: chr, start, end) no header',
                         type=str)
     parser.add_argument('--noise_model',
                         help='Noise model parameters',
+                        default='results/GRCm38/binned_norm_coverage/Noise_model_parameters_1000bp.csv',
                         type=str)
     parser.add_argument('--bw_folder',
                         help='Folder with bigwig files',
+                        default='results/GRCm38/binned_norm_coverage',
                         type=str)
     parser.add_argument('--threads',
                         help='Number of threads',
@@ -37,6 +38,7 @@ def parse_args():
                         type=int)
     parser.add_argument('--out_table',
                         help='Output csv table with kalmen on expressed regions (rows: position | cols: chr, start, end, ...)',
+                        default='results/GRCm38/kalman/kalman_on_expressed_regions_default_output.csv',
                         type=str)
     args = parser.parse_args()
     return args
@@ -143,9 +145,7 @@ def get_data(coord, args):
     # fill missing values with 0, add pseudo count, log2 transform
     cols = [str(t) for t in T]
     df[cols] = df[cols].fillna(0).apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
-    #df = df.infer_objects(copy=False)
-    #df.fillna(0,inplace=True)
-    #df = df.apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
+
     
     return df
 
@@ -236,8 +236,7 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
     df = get_data(coord,args)
     positions = df.index*1e-3 # positions [kb]
     measurments = df[[str(t) for t in T]].values.T # time x position
-
-    # flip if strand is '-'
+    # flip if on negative strand
     if strand == '-':
         measurments = measurments[:,::-1]
         positions = -positions[::-1]
@@ -273,19 +272,18 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
     P0 = solve_continuous_lyapunov(F0, -Q)
     check_positive_definite(P0, stop=True, verbose=False)
 
+    # Declare arrays
     x_pred = np.zeros((N_bins,n))
     x_est = np.zeros((N_bins,n))
     x_smooth = np.zeros((N_bins,n))
-
     P_pred = np.zeros((N_bins,n,n))
     P_est = np.zeros((N_bins,n,n))
     P_smooth = np.zeros((N_bins,n,n))
+    LL = np.zeros(N_bins) # Log likelihood
 
     ε = 1e-6
     I_m = np.eye(m)
     I_n = np.eye(n)
-
-    LL = np.zeros(N_bins) # Log likelihood
 
     # Forward filter
     for k in range(N_bins):
@@ -306,7 +304,7 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
         S_inv = np.linalg.solve(S, I_m)
         K = np.linalg.multi_dot([P_pred[k], H.T, S_inv])
         res = X[:, k] - h(x_pred[k],H)
-        x_est[k] = x_pred[k] + K @ (res)
+        x_est[k] = x_pred[k] + K @ res
         KH = K @ H
         P_est[k] = (I_n - KH) @ P_pred[k] @ (I_n - KH).T + K @ R[k] @ K.T# joseph form
         check_positive_definite(P_est[k], stop=True, verbose=False)
@@ -326,18 +324,17 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
         Φ_0 = I_n # initial condition for the time-evolved transition
         solPhi = solve_ivp(dPhidx, t_span=[0, Δx], y0=Φ_0.flatten(), t_eval=[Δx], args=(x_pred[k], gamma_k, k_mu, gamma_l, l_mu),method='RK45')
         Φ_sol = solPhi.y[:, -1].reshape((n, n))
-        J = np.linalg.solve(P_pred[k+1], (Φ_sol @ P_est[k]).T)
+        #J = np.linalg.solve(P_pred[k+1], (Φ_sol @ P_est[k]).T)
+        P_inv = np.linalg.solve(P_pred[k+1], I_n)
+        J = np.linalg.multi_dot([P_est[k], Φ_sol.T, P_inv])
         x_smooth[k] = x_est[k] + J @ (x_smooth[k+1] - x_pred[k+1])
         P_smooth[k] = P_est[k] + J @ (P_smooth[k+1] - P_pred[k+1]) @ J.T
-        P_smooth[k] = (P_smooth[k] + P_smooth[k].T) / 2 + I_n*ε
+        #P_smooth[k] = (P_smooth[k] + P_smooth[k].T) / 2 + I_n*ε
 
-    # reflip if strand is '-'
+    # reflip if on negative strand
     if strand == '-':
         x_smooth = x_smooth[::-1]
         P_smooth = P_smooth[::-1]
-        #x_est = x_est[::-1]
-        #P_est = P_est[::-1]
-
         LL = LL[::-1]
 
     # state, amp and phase of smoothed signal
@@ -345,25 +342,37 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
     b = x_smooth[:,1]
     k = x_smooth[:,2]
     λ = x_smooth[:,3]
-    σ2_a = P_smooth[:,0,0]
-    σ2_b = P_smooth[:,1,1]
-    σ_ab = P_smooth[:,0,1]
-    σ2_k = P_smooth[:,2,2]
-    σ2_λ = P_smooth[:,3,3]
+    var_a = P_smooth[:,0,0]
+    var_b = P_smooth[:,1,1]
+    cov_ab = P_smooth[:,0,1]
+    var_k = P_smooth[:,2,2]
+    var_λ = P_smooth[:,3,3]
     A = np.sqrt(a**2 + b**2)
-    σ_A = np.sqrt( σ2_a + σ2_b + 2*σ_ab )
-    φ = np.arctan2(b,a)
-    φ[φ<0] += 2*np.pi
-    σ_φ = np.sqrt( b*b*σ2_a + a*a*σ2_b - 2*a*b*σ_ab )/(a*a+b*b)
+    var_A = var_a + var_b + 2*cov_ab
+    phi = np.arctan2(b,a)
+    phi[phi<0] += 2*np.pi
+    var_φ = (b*b*var_a + a*a*var_b - 2*a*b*cov_ab) / ((a*a+b*b)*(a*a+b*b))
 
     # Save results in a dataframe
-    df_out = pd.DataFrame(columns=['chr','start','end','strand','LL','a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi'])
-    df_out.start = df['start']
-    df_out.end = df['end']
+    df_out = pd.DataFrame(columns=['chr','start','end','strand','LL','a','var_a','b','var_b','cov_ab','k','var_k','lambda','var_lambda','amp','var_amp','phi','var_phi'])
     df_out.chr = chr
+    df_out.start = df.start
+    df_out.end = df.end
     df_out.strand = strand
     df_out.LL = LL
-    df_out.loc[:,['a','da','b','db','dab','k','dk','λ','dλ','amp','damp','phi','dphi']] = np.array([a,σ2_a,b,σ2_b,σ_ab,k,σ2_k,λ,σ2_λ,A,σ_A,φ,σ_φ]).T
+    df_out.a = a
+    df_out.var_a = var_a
+    df_out.b = b
+    df_out.var_b = var_b
+    df_out.cov_ab = cov_ab
+    df_out.k = k
+    df_out.var_k = var_k
+    df_out['lambda'] = λ
+    df_out['var_lambda'] = var_λ
+    df_out.amp = A
+    df_out.var_amp = var_A
+    df_out.phi = phi
+    df_out.var_phi = var_φ
 
     return df_out
 
