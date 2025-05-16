@@ -8,7 +8,7 @@ from phase_to_labcolor import phase_to_labcolor as p2lc
 def parse_args():
     parser = argparse.ArgumentParser(description='Get gene kf-smoothed amp phase')
     parser.add_argument('--kalman_table',
-                        help='Imput table: extended kalman result table (chr, start, end, strand, a, b, k, lambda, LL)',
+                        help='Input table: extended kalman result table (chr,start,end,strand,LL,a,da,b,db,dab,k,dk,λ,dλ,amp,damp,phi,dphi',
                         type=str)
     parser.add_argument('--strand',
                         choices=['+','-'],
@@ -32,11 +32,9 @@ if __name__ == '__main__':
     kalman = kalman.loc[kalman['strand']==args.strand,:]
     
     # get phase
-    m = 12 # number of time points
-    μ = kalman['a'].values + 1j*kalman['b'].values
-    amp = 4/m * np.abs(μ)
-    φ = -np.arctan2(kalman['b'].values,kalman['a'].values)
-    threshold_amp = .5
+    amp = kalman['amp'].values
+    φ = kalman['phi'].values
+    threshold_amp = .1
     rgb = p2lc(φ,amp,threshold_amp)
 
     # bed phase
@@ -62,14 +60,14 @@ if __name__ == '__main__':
     bed_phi.to_csv(args.out_bed_phase_amp,sep='\t',header=False,index=False)
 
     # fix LL values
-    # 1) remove extreme values
+    # remove extreme values
     ll_q_1e5 = kalman['LL'].quantile(1e-5)
     kalman.loc[ kalman['LL'] < ll_q_1e5, 'LL'] = ll_q_1e5
 
-    # 2) put nan values to min
+    # put nan values to min
     kalman.loc[ np.isnan(kalman['LL']), 'LL'] = ll_q_1e5
 
-    # 3) put min LL to 0
+    # put min LL to 0
     kalman['LL'] -= np.min(kalman['LL'])
     
     # save bedgraph file (4 cols)
