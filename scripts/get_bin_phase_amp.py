@@ -84,7 +84,7 @@ if __name__ == '__main__':
             Λ[i] = np.diag(1/σ2[i])
 
         # run GLS harmonic regression
-        mu, A, phi, sigma2_mu, sigma2_A, sigma2_phi, r2, pval = fourier_transform_GLS(X,T,omega_n,Λ)
+        mu, a, b, A, phi, sigma2_mu, sigma2_a, sigma2_b, sigma2_A, sigma2_phi, r2, pval = fourier_transform_GLS(X,T,omega_n,Λ)
 
         # phase and amplitude
         df = pd.DataFrame()

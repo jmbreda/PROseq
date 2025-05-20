@@ -8,6 +8,7 @@ import pyBigWig as bw
 def parse_args():
     parser = argparse.ArgumentParser(description='Fit noise model as a function of mean expression')
     parser.add_argument('--bin_size', help='Bin size', default=1000, type=int)
+    parser.add_argument('--pseudo_count', help='Pseudo count', default=8, type=float)
     parser.add_argument('--out_table', help='Output table', default='results/noise_model.csv', type=str)
     parser.add_argument('--out_fig', help='Output figure', default='results/fig/noise_model.pdf', type=str)
     parser.add_argument('--bw_folder', help='Input data folder', default='results/binned_norm_coverage', type=str)
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     df.fillna(0,inplace=True)
 
     # log transform with pseudocount 1
-    df = df.apply(lambda x: np.log2(x+1),axis=1)
+    df = df.apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
 
     # separate mesurments at time [0-24) and [24-48)
     x = df.loc[:,[f"CT{t:02d}" for t in np.arange(0 ,24,4) ]].values.flatten()

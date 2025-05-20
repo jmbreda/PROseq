@@ -23,6 +23,8 @@ Bin_size:
     - '1000'
     - '10000'
 
+Pseudo_count: 8
+
 Samples:
     - CT00
     - CT04

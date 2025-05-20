@@ -83,8 +83,8 @@ rule all:
         #expand(os.path.join("results",Species,"log_binned_norm_coverage","{sample}","Log2NormCoverage_3p_{strand}_bin{bin_size}bp.bw"), sample=config['Samples'], strand=config['Strands'], bin_size=config['Bin_size']),
         #
         # Phase and amplitude
-        # expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
-        # expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
+        expand(os.path.join("results",Species,"phase_amp","bin_phase_amp_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands']),
+        expand(os.path.join("results",Species,"phase_amp","bin_mu_{strand}_{bin_size}bp.bw"), bin_size=config['Bin_size'], strand=config['Strands']),
         #os.path.join("results",Species,"fig","gene_phase_amp.pdf"),
         #os.path.join(config['outfold_genome'],Species,"gene_protein_coding.gtf")
         #expand(os.path.join("results",Species,"phase_amp","gene_phase_amp_{strand}.bed"), strand=config['Strands']),
@@ -99,8 +99,8 @@ rule all:
         #
         # cont time extended kalman
         expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
         #expand(os.path.join("results",Species,"kalman","average_LL_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #
         # Time-space Fourier
@@ -111,10 +111,10 @@ rule all:
         #expand(os.path.join("results",Species,"fig","kalman","ll_{win_size}_{d_win}_{chr}_{bin_size}bp.pdf"),win_size=config['Kalman']['win_size'],d_win=config['Kalman']['d_win'],chr=config['Chromosomes'],bin_size=config['Bin_size'])
         #
         # Track hub
-        hub=os.path.join(config['track_hub_folder'],"hub.txt"),
-        genome=os.path.join(config['track_hub_folder'],"genome.txt"),
-        url=os.path.join(config['track_hub_folder'],"url.txt"),
-        trackDb=os.path.join(config['track_hub_folder'],"mm10","trackDb.txt")
+        #hub=os.path.join(config['track_hub_folder'],"hub.txt"),
+        #genome=os.path.join(config['track_hub_folder'],"genome.txt"),
+        #url=os.path.join(config['track_hub_folder'],"url.txt"),
+        #trackDb=os.path.join(config['track_hub_folder'],"mm10","trackDb.txt")
 
 ##-------------------------------------------------------------------##
 ##   Download gtf, cDNA (coding transcripts), and DNA from Gencode   ##
@@ -654,11 +654,13 @@ rule noise_model:
         noise_model_parameters=os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"),
         fig=os.path.join("results",Species,"fig","noise_model_{bin_size}bp.pdf")
     params:
-        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage"),
+        pseudo_count=config['Pseudo_count']
     threads: 12
     shell:
         """
         python scripts/noise_model.py --bin_size {wildcards.bin_size} \
+                                      --pseudo_count {params.pseudo_count} \
                                       --out_table {output.noise_model_parameters} \
                                       --out_fig {output.fig} \
                                       --bw_folder {params.bw_folder}
@@ -998,11 +1000,11 @@ rule extended_kalman_on_chromosomes:
     shell:
         """
         python scripts/extended_kalman_on_genomic_regions.py --bin_size {wildcards.bin_size} \
-                                                               --regions {input.chromosomes} \
-                                                               --noise_model {input.noise_model_parameters} \
-                                                               --bw_folder {params.bw_folder} \
-                                                               --out_table {output.table} \
-                                                               --threads {threads}
+                                                             --regions {input.chromosomes} \
+                                                             --noise_model {input.noise_model_parameters} \
+                                                             --bw_folder {params.bw_folder} \
+                                                             --out_table {output.table} \
+                                                             --threads {threads}
         """
 
 rule extended_kalman_bed:

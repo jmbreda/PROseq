@@ -38,7 +38,7 @@ def parse_args():
                         type=int)
     parser.add_argument('--out_table',
                         help='Output csv table with kalmen on expressed regions (rows: position | cols: chr, start, end, ...)',
-                        default='results/GRCm38/kalman/kalman_on_expressed_regions_default_output.csv',
+                        default='results/GRCm38/kalman/default_output_extended_kalman_on_genomic_regions.csv',
                         type=str)
     args = parser.parse_args()
     return args
@@ -138,6 +138,10 @@ def get_data(coord, args):
     df.sort_values('start',inplace=True)
     df.reset_index(inplace=True,drop=True)
 
+    # add chromosome and strand
+    df['chr'] = chr
+    df['strand'] = strand
+
     # get position in the middle of the bin, and set as index
     df['pos'] = ( df['start'] + df['end'] ) / 2
     df.set_index('pos',inplace=True)
@@ -146,7 +150,6 @@ def get_data(coord, args):
     cols = [str(t) for t in T]
     df[cols] = df[cols].fillna(0).apply(lambda x: np.log2(x+args.pseudo_count),axis=1)
 
-    
     return df
 
 # get extended kalman filter parameters
@@ -355,10 +358,10 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
 
     # Save results in a dataframe
     df_out = pd.DataFrame(columns=['chr','start','end','strand','LL','a','var_a','b','var_b','cov_ab','k','var_k','lambda','var_lambda','amp','var_amp','phi','var_phi'])
-    df_out.chr = chr
+    df_out.chr = df.chr
     df_out.start = df.start
     df_out.end = df.end
-    df_out.strand = strand
+    df_out.strand = df.strand
     df_out.LL = LL
     df_out.a = a
     df_out.var_a = var_a
@@ -383,7 +386,7 @@ if __name__ == '__main__':
 
     # get expressed regions from bed file
     genomic_regions = pd.read_csv(args.regions,sep='\t',header=None)
-    genomic_regions.columns = ['chr','start','end']
+    genomic_regions.columns = ['chr','start','end','strand']
 
     # get noise model parameters
     fin = open(args.noise_model,'r')
@@ -402,10 +405,9 @@ if __name__ == '__main__':
     # get coordinates list
     COORD = []
     for idx_region in genomic_regions.index:
-        [chr,start,end] = genomic_regions.loc[idx_region,['chr','start','end']]
-        for strand in ['+','-']:
-            coord = f'{chr}:{start}:{end}:{strand}'
-            COORD.append(coord)
+        [chr,start,end,strand] = genomic_regions.loc[idx_region,['chr','start','end','strand']]
+        coord = f'{chr}:{start}:{end}:{strand}'
+        COORD.append(coord)
 
     # run Kalman filter
     #COORD = COORD[:240]
