@@ -165,11 +165,11 @@ def get_kf_parameters():
     n = 4 # number of hidden states
 
     # k parameters (wave number)
-    v_mean = 34 # [bp/s]
+    v_mean = 40 # [bp/s]
     k_mean = (ω/3600)/(v_mean*1e-3) # [rad/kb]
     k_mu = 0.001*k_mean # [rad/kb]
     gamma_k = 1/50 # rate of mean reversion of k(t). return from k(t) to k_mu in 1/gamma_k =~ 50 [kb]
-    sigma_k = k_mean # variance k(t) process of the same order of magnitude as the signal
+    sigma_k = 2*k_mean # variance k(t) process of the same order of magnitude as the signal
     eps_k = sigma_k * np.sqrt(2*gamma_k)
 
     # lambda parameters (rate of amplitude fluctuation)
@@ -256,14 +256,15 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
     for i in range(N_bins):
         if np.isnan(measurments[:,i]).all():
             continue
-        r_i = Noise_params['a'] * np.exp(-Noise_params['b'] * measurments[:,i] ) + 2*Noise_params['c']
+        r_i = Noise_params['a'] * np.exp(-Noise_params['b'] * measurments[:,i] ) + Noise_params['c']
         r_i[measurments[:,i] < Noise_params['m_err_max']] = Noise_params['err_max']
+        r_i[r_i < 0.5] = 0.5 # set a minimum value to avoid singularity
         R[i,:,:] = np.diag(r_i)
 
     # Initial state estimate and covariance
     n0 = 10
     # compute amplitude and phase by GLS
-    μ_gls, a_gls, b_gls, A_gls, φ_gls, σ2_μ_gls, σ2_a_gls, σ2_b_gls, σ2_A_gls, σ2_φ_gls, r2_gls, pval_gls = fourier_transform_GLS(X[:,:n0].T,T,ω,R[:n0])
+    _, a_gls, b_gls, _, _, _, _, _, _, _, _, _ = fourier_transform_GLS(X[:,:n0].T,T,ω,R[:n0])
     # compute mean of the GLS estimates
     a0 = np.mean(a_gls)
     b0 = np.mean(b_gls)
@@ -284,7 +285,6 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
     P_smooth = np.zeros((N_bins,n,n))
     LL = np.zeros(N_bins) # Log likelihood
 
-    ε = 1e-6
     I_m = np.eye(m)
     I_n = np.eye(n)
 
@@ -299,22 +299,18 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
             x_pred[k] = f_analytical_solution(Δx, x_est[k-1], gamma_k, k_mu, gamma_l, l_mu)
             solP = solve_ivp(dPdx, [0, Δx], y0=P_est[k-1].flatten(), args=(Q, x_est[k-1], gamma_k, k_mu, gamma_l, l_mu),t_eval=[Δx], method='RK45')
             P_pred[k] = solP.y[:, -1].reshape((n,n)) 
-            check_positive_definite(P_pred[k], stop=True, verbose=False)
-            #P_pred[k] += I_n*ε # Add small noise to avoid singularity
         
         # Update
         S = np.linalg.multi_dot([H,P_pred[k],H.T]) + R[k]
-        S_inv = np.linalg.solve(S, I_m)
-        K = np.linalg.multi_dot([P_pred[k], H.T, S_inv])
+        K = np.linalg.solve(S.T, H @ P_pred[k].T).T # K = P_pred[k] @ H.T @ inv(S)
         res = X[:, k] - h(x_pred[k],H)
         x_est[k] = x_pred[k] + K @ res
         KH = K @ H
         P_est[k] = (I_n - KH) @ P_pred[k] @ (I_n - KH).T + K @ R[k] @ K.T# joseph form
-        check_positive_definite(P_est[k], stop=True, verbose=False)
-        #P_est[k] += + I_n*ε # add small noise to avoid singularity
         
         # Log likelihood
         det_S = np.linalg.det(S)
+        S_inv = np.linalg.solve(S, I_m)
         if det_S < 1e-6:
             det_S = 1e-6
         LL[k] = -0.5 * ( np.linalg.multi_dot([res.T, S_inv, res]) + np.log(det_S) + m * np.log(2*np.pi) )
@@ -327,12 +323,9 @@ def extended_kalman(args, Noise_params, kf_parameters, coord):
         Φ_0 = I_n # initial condition for the time-evolved transition
         solPhi = solve_ivp(dPhidx, t_span=[0, Δx], y0=Φ_0.flatten(), t_eval=[Δx], args=(x_pred[k], gamma_k, k_mu, gamma_l, l_mu),method='RK45')
         Φ_sol = solPhi.y[:, -1].reshape((n, n))
-        #J = np.linalg.solve(P_pred[k+1], (Φ_sol @ P_est[k]).T)
-        P_inv = np.linalg.solve(P_pred[k+1], I_n)
-        J = np.linalg.multi_dot([P_est[k], Φ_sol.T, P_inv])
+        J = np.linalg.solve(P_pred[k+1], Φ_sol @ P_est[k]).T
         x_smooth[k] = x_est[k] + J @ (x_smooth[k+1] - x_pred[k+1])
         P_smooth[k] = P_est[k] + J @ (P_smooth[k+1] - P_pred[k+1]) @ J.T
-        #P_smooth[k] = (P_smooth[k] + P_smooth[k].T) / 2 + I_n*ε
 
     # reflip if on negative strand
     if strand == '-':

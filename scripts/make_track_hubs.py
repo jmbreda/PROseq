@@ -72,10 +72,10 @@ if __name__ == '__main__':
                 fout.write(f"longLabel Gene phase and amplitude {strand[0]} strand, mapped in RGB space (red: 0h, yellow: 6h, green: 12h, blue: 18h)\n")
                 fout.write(f"bigDataUrl {track_folder}/phase_amp/gene_phase_amp_{strand}.bb\n")
                 fout.write("visibility pack\n")
-                if strand == 'forward':
-                    fout.write("\tcolor 0,0,255\n")
-                elif strand == 'reverse':
-                    fout.write("\tcolor 255,0,0\n")
+                #if strand == 'forward':
+                #    fout.write("\tcolor 0,0,255\n")
+                #elif strand == 'reverse':
+                #    fout.write("\tcolor 255,0,0\n")
                 fout.write(f"priority {p}\n")
                 fout.write("\n")
             
@@ -119,10 +119,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
-                    if strand == 'forward':
-                        fout.write("\tcolor 0,0,255\n")
-                    elif strand == 'reverse':
-                        fout.write("\tcolor 255,0,0\n")
+                    #if strand == 'forward':
+                    #    fout.write("\tcolor 0,0,255\n")
+                    #elif strand == 'reverse':
+                    #    fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
@@ -140,10 +140,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
-                    if strand == 'forward':
-                        fout.write("\tcolor 0,0,255\n")
-                    elif strand == 'reverse':
-                        fout.write("\tcolor 255,0,0\n")
+                    #if strand == 'forward':
+                    #    fout.write("\tcolor 0,0,255\n")
+                    #elif strand == 'reverse':
+                    #    fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
@@ -161,10 +161,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
-                    if strand == 'forward':
-                        fout.write("\tcolor 0,0,255\n")
-                    elif strand == 'reverse':
-                        fout.write("\tcolor 255,0,0\n")
+                    #if strand == 'forward':
+                    #    fout.write("\tcolor 0,0,255\n")
+                    #elif strand == 'reverse':
+                    #    fout.write("\tcolor 255,0,0\n")
                     fout.write(f"priority {p}\n")
                     fout.write("\n")
                     p += 1
@@ -182,10 +182,10 @@ if __name__ == '__main__':
                         fout.write("visibility dense\n")
                     else:
                         fout.write("visibility hide\n")
-                    if strand == 'forward':
-                        fout.write("\tcolor 0,0,255\n")
-                    elif strand == 'reverse':
-                        fout.write("\tcolor 255,0,0\n")
+                    #if strand == 'forward':
+                    #    fout.write("\tcolor 0,0,255\n")
+                    #elif strand == 'reverse':
+                    #    fout.write("\tcolor 255,0,0\n")
                     fout.write("autoScale on\n")
                     fout.write("\tminLimit 0\n")
                     fout.write("maxHeightPixels 100:30:8\n") # max:default:min
