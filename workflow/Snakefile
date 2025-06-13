@@ -93,14 +93,14 @@ rule all:
         #
         # Kalman
         #expand(os.path.join("results",Species,"binned_norm_coverage","Noise_model_parameters_{bin_size}bp.csv"), bin_size=config['Bin_size'] ),
-        #expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
+        expand(os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5"), bin_size=config['Bin_size']),
         #expand(os.path.join("results",Species,"phase_amp","gene_kalman_phase_R2_{strand}_{bin_size}bp.bb"), bin_size=config['Bin_size'], strand=config['Strands'])
         #expand(os.path.join("results",Species,"fig","kalman","Gene_Q_1e-5","scatter_Kmax_R2_LL_strand_{bin_size}bp.pdf"), bin_size=config['Bin_size'])
         #
         # cont time extended kalman
-        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
-        expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_bin{bin_size}bp.csv"), bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_phi_amp.bb"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
+        #expand(os.path.join("results",Species,"kalman","extended_kalman_on_{region}_{strand}_bin{bin_size}bp_ll.bw"), strand=config['Strands'], bin_size=config['Bin_size'],region=config['Extended_kalman']['Genomic_regions']),
         #expand(os.path.join("results",Species,"kalman","average_LL_expressed_regions_bin{bin_size}bp.csv"), bin_size=config['Bin_size']),
         #
         # Time-space Fourier
@@ -843,11 +843,13 @@ rule Kalman_gene_smoothing:
     output:
         os.path.join("results",Species,"kalman","Gene_Q_1e-5","Kalman_Smoothing_{bin_size}bp.hdf5")
     params:
-        bw_folder=os.path.join("results",Species,"binned_norm_coverage")
+        bw_folder=os.path.join("results",Species,"binned_norm_coverage"),
+        pseudo_count=config['Pseudo_count']
     threads: 24
     shell:
         """
         python scripts/Kalman_filter_on_genes.py --bin_size {wildcards.bin_size} \
+                                                 --pseudo_count {params.pseudo_count} \
                                                  --bw_folder {params.bw_folder} \
                                                  --noise_model_parameters {input.noise_model_parameters} \
                                                  --gene_phase_amp {input.gene_phase_amp} \

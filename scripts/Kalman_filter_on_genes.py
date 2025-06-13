@@ -17,6 +17,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Get time-space fourier transform')
     parser.add_argument('--th_count_per_bp', help='Threshold count per bp', default=0.01, type=float)
     parser.add_argument('--bin_size', help='Bin size', default=1000, type=int)
+    parser.add_argument('--pseudo_count', help='Pseudo count for log2 transform', default=8, type=float)
     parser.add_argument('--bw_folder', help='Input data folder', default="results/binned_norm_coverage" ,type=str)
     parser.add_argument('--noise_model_parameters', help='Noise model parametrs', default="results/binned_norm_coverage/Noise_model_parameters_1000bp.csv", type=str)
     parser.add_argument('--gene_phase_amp', help='Gene phase and amplitude table', default="results/phase_amp/gene_phase_amp.csv", type=str)
@@ -25,7 +26,7 @@ def parse_args():
     
     return parser.parse_args()
 
-def get_data(coord, bw_folder, bin_size):
+def get_data(coord, bw_folder, bin_size, pseudo_count=8):
 
     T = np.arange(0,48,4)
     Samples = [f'CT{t:02d}' for t in T]
@@ -46,7 +47,7 @@ def get_data(coord, bw_folder, bin_size):
     # get measurments matrix (time x position)
     measurements = df.loc[:,Samples].values.T.astype(float) # time x position
     measurements[np.isnan(measurements)] = 0
-    measurements = np.log2(measurements+1)
+    measurements = np.log2(measurements+pseudo_count) # log2 transform with pseudo-count
 
     positions = df.position.values
     
@@ -148,9 +149,6 @@ if __name__ == '__main__':
     
     args = parse_args()
 
-    # Read gtf file and gene phase and amplitude
-    # gtf = get_gtf(args.gtf)
-
     # get gene phase and amplitude
     gene_phase_amp = pd.read_csv(args.gene_phase_amp,sep='\t')
     gene_phase_amp.set_index('gene_id',inplace=True,drop=True)
@@ -203,7 +201,7 @@ if __name__ == '__main__':
 
             coord = gene_phase_amp.loc[gene,['chr','start','end','strand']]
             COORD = f"{coord.chr}:{coord.start}:{coord.end}:{coord.strand}"
-            measurements, positions = get_data(COORD, args.bw_folder, args.bin_size)
+            measurements, positions = get_data(COORD, args.bw_folder, args.bin_size, args.pseudo_count)
             # measurments matrix (time x positions)
 
             # ignore genes with less than 5 expressed bins
