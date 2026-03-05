@@ -12,7 +12,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-
 if __name__ == '__main__':
 
     args = parse_args()
@@ -251,19 +250,20 @@ if __name__ == '__main__':
                         # make html description file
                         with open(f'{args.track_hub_folder}/{description_html}','w', encoding="utf-8") as fout2:
                             fout2.write(f"<h2>{name}_{strand}</h2>\n")
+            
+            # TAD
+            fout.write(f"track TAD\n")
+            fout.write("type bigBed 3\n")
+            #fout.write("itemRgb off\n")
+            fout.write(f"shortLabel TADs\n")
+            fout.write(f"longLabel TADs\n")
+            fout.write(f"bigDataUrl {track_folder}/tad/TADMap_scaffold_mm10.bb\n")
+            fout.write("visibility squish\n")
+            description_html = f"{genome}/tad.html"
+            fout.write(f"\tdescriptionUrl {description_html}\n")
+            fout.write("\n")
 
-
-
-
-        #link tracks to track_hub folder
-        #link_to_data = f'{track_hub_folder}/tracks_bw_unbinned'
-        #data_folder = f'{results_folder}/norm_coverage/'
-        #if not os.path.exists(link_to_data):
-        #    os.system(f'ln -s {data_folder} {link_to_data}')
-        
-        #link_to_data = f'{track_hub_folder}/tracks_tad'
-        #data_folder = f'/bigdata/jbreda/PROseq/resources/TAD/'
-        #if not os.path.exists(link_to_data):
-        #    os.system(f'ln -s {data_folder} {link_to_data}')
-
-        
+            # make description
+            with open(f'{args.track_hub_folder}/{description_html}','w', encoding="utf-8") as fout2:
+                fout2.write("<h2>TAD map from https://cb.csail.mit.edu/cb/tadmap/</h2>\n")
+                fout2.write("\n")
